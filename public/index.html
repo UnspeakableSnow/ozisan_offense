@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+  
+<head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>報告</title>
+ <link rel="stylesheet" href="./reset.css">
+  <script src="three.js"></script>
+  <script src="https://unpkg.com/three@0.147.0/examples/js/loaders/TDSLoader.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.152.2/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.152.2/examples/jsm/"
+    }
+  }
+</script>
+<script type="module">
+  import * as THREE from "three";
+  import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+// ページの読み込みを待つ
+window.addEventListener('DOMContentLoaded', init);
+
+// サイズを指定
+const width = 800;
+const height = 600;
+
+function init() {
+  // レンダラーを作成
+  const renderer = new THREE.WebGLRenderer({
+    canvas: document.querySelector('#myCanvas')
+  });
+  renderer.setSize(width, height);
+  // シーンを作成
+  const scene = new THREE.Scene();
+  // カメラを作成
+  const camera = new THREE.PerspectiveCamera(45, width / height, 1, 10000);
+  camera.position.set(0, 600, 0);
+
+// GLTF形式のモデルデータを読み込む 狼
+const loadergltf = new GLTFLoader();
+let model = null;
+loadergltf.load( 'file/wolf.glb', function ( gltf ) {
+  model = gltf.scene;
+  scene.add( model );
+  model.scale.set(400, 400, 400);
+  model.position.y=-100;
+  console.log('成功' );
+}, function ( xhr ) {
+		console.log( ( xhr.loaded / xhr.total * 100 ) + '% 読込済' );
+}, function ( error ) {
+console.error( error );
+} );
+
+  const directionalLight = new THREE.DirectionalLight(0xFFFFFF);// 平行光源
+  directionalLight.position.set(1, 0.5, 1);
+  scene.add(directionalLight);// シーンに追加
+  
+  let mouseX = 0;
+  let cccX=0;
+  // マウス座標はマウスが動いた時のみ取得できる
+  document.addEventListener("mousemove", (event) => {
+    mouseX = (event.pageX/ window.innerWidth-0.5)*2;
+    // nowmouseY = event.pageY;
+  });
+  document.body.addEventListener('keydown',(event) => {
+        if (event.key === 'w' ) {
+          console.log("Wが押されました")
+        }
+    });
+  tick();
+  // 毎フレーム時に実行されるループイベントです
+  function tick() {
+    if(model!=null){
+      model.rotation.y+=0.005;
+    }
+    mouseX+=0.001
+    cccX += (mouseX-cccX)*0.07;
+    if(mouseX>1){cccX-=1;mouseX-=1;}
+    camera.position.x = Math.sin(cccX*2*Math.PI) * -1200;
+    camera.position.z = Math.cos(cccX*2*Math.PI) * 1200;
+    camera.lookAt(new THREE.Vector3(0, 0, 0));// 原点方向を見つめる
+    renderer.render(scene, camera);// レンダリング
+    requestAnimationFrame(tick);
+  }
+}
+  </script>
+</head>
+<body>
+ <p class="nowdate"><script>
+  var today = new Date();
+  var year = today.getFullYear();
+  var month = today.getMonth()+1;
+  var day = today.getDate();
+  var hour = today.getHours();
+  document.write(year+'_'+('00'+month).slice(-2)+'_'+('00'+day).slice(-2)+'_'+('00'+hour).slice(-2));
+ </script><br>
+ <canvas id="myCanvas"></canvas>
+</p>
+ <p>ようこそ</br>- 最終取得温度は <?php include('./ondo.txt');?>度です。</p>
+ <audio src="file/TT.mp3"></audio>
+ <!-- <iframe width="800" height="600"
+  src="https://www.youtube.com/embed/videoseries?list=PLYyJCobshLZl4NV5Qg8EghuE6S0G77OnB"
+   title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe> -->
+<img src="file/25.jpg" width="200"> 
+</body>
+</html>
