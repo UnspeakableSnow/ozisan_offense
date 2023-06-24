@@ -8,7 +8,7 @@
 
 ```powershell
 docker build -t nw_game .
-docker run -d -p 3000:8080 nw_game
+docker run -d -p 3000:8083 nw_game
 ```
 
 2. どっかーを起動した鯖のlocalhostなりローカルIPの3000ポートにアクセスする。  
