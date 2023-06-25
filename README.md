@@ -7,8 +7,8 @@
 1. Dockerを起動する。
 
 ```powershell
-docker build -t nw_game .
-docker run -d -p 3000:8083 nw_game
+docker build -t nwg .
+docker run -d -p 3000:8083 nwg
 ```
 
 2. どっかーを起動した鯖のlocalhostなりローカルIPの3000ポートにアクセスする。  
@@ -36,4 +36,23 @@ htmlとJSを書く。何とか動いたメポ(*≧pq≦)。とりあえず円形
 `"After the rain... - VR & Sound" (https://skfb.ly/6uQxu) by Aurélien Martel is licensed under Creative Commons Attribution-NonCommercial (http://creativecommons.org/licenses/by-nc/4.0/).`  
 `"QBZ-95 With Hands And Animations" (https://skfb.ly/oIvHr) by BillyTheKid is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).`
 
+### 0625
 
+ラズパイでnodeでとりあえず動かしてみると以下のエラーが発生！(Pд\`q｡)  
+`SyntaxError: Unexpected token 'v', "version ht"... is not valid JSON`  
+でもメインPCでは動くから権限エラーとか疑って三時間ぐらいかけてようやく解決の糸口を見つける。→<https://github.com/0hq/WebGPT/issues/25>  
+そう言えばpushするときにlfs使ったのにpullするとき使ってなかったわ……m9(ﾟдﾟ)っｿﾚﾀﾞｯ!!
+
+git resetをたぶん一番使った日になりました……（チーム開発だとこれが初日から起こったんだろうなぁ）
+
+なにはともあれラズパイをnodeゲーム鯖として起動できた！あとはこれをDocker上で動かしたいが時間かかりすぎ問題。見積りでbuildに二時間かかるらしい。
+
+![0625-0](活動記録！/0625-0.png)
+
+DockerはCドライブ以外のダウンロード選択肢がないのでメインPCには入れたくなかったが仕方なくDokerDesktopをインストールして実行
+
+![0625-1](活動記録！/0625-1.png)
+
+動いた( *'w')b
+
+あとはハッカソン当日にゲーム内容を充実させるだけ……でいいのだろうか。当方は訝しんだ。
