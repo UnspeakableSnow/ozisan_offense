@@ -13,7 +13,7 @@ camera.position.set(0, 0, 0);
 // GLTF形式のモデルデータを読み込む 狼
 const loadergltf = new GLTFLoader();
 let model = null;
-loadergltf.load( 'shot_file/qbz-95_with_hands_and_animations.glb', function ( gltf ) {
+loadergltf.load( './shot_file/qbz-95_with_hands_and_animations.glb', function ( gltf ) {
 model = gltf.scene;
 const animations = gltf.animations;
 
@@ -36,7 +36,7 @@ console.error( error );
 
 // GLTF形式のモデルデータを読み込む 部屋
 let model_r = null;
-loadergltf.load( '/shot_file/after_the_rain..._-_vr__sound-n.glb', function ( gltf ) {
+loadergltf.load( './shot_file/after_the_rain..._-_vr__sound-n.glb', function ( gltf ) {
 model_r = gltf.scene;
 scene.add( model_r );
 model_r.position.set(0,-2,0);
