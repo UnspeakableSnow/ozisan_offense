@@ -10,7 +10,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, width / height, 1, 10000);
 camera.position.set(0, 0, 0);
 
-// GLTF形式のモデルデータを読み込む 狼
+// PL
 const loadergltf = new GLTFLoader();
 let model = null;
 loadergltf.load( './shot_file/qbz-95_with_hands_and_animations.glb', function ( gltf ) {
@@ -34,7 +34,7 @@ console.log('成功' );
 console.error( error );
 } );
 
-// GLTF形式のモデルデータを読み込む 部屋
+// マップ
 let model_r = null;
 loadergltf.load( './shot_file/after_the_rain..._-_vr__sound-n.glb', function ( gltf ) {
 model_r = gltf.scene;
@@ -55,7 +55,9 @@ let mouseX_dec = 0;
 let comradi_mov=0;
 let comradi=0;
 let mousedown=false;
-const movescale=10;
+const movescale=0.2;//歩幅
+let wasd_down=[false,false,false,false];
+let moveto=[0,0];
 let mixer;
 let clock = new THREE.Clock();
 document.addEventListener("mousemove", (event) => {
@@ -63,19 +65,17 @@ document.addEventListener("mousemove", (event) => {
     if(mousedown){mouseX = (event.pageX-mouseX_dec)/ window.innerWidth;}
     if(event.pageX/window.innerWidth<0.02 || 0.98<event.pageX/window.innerWidth){mousedown=false;}
 });
-document.body.addEventListener('keydown',(event) => {
-    if(model!=null){
-        if (event.key === 'w' ) {
-            model.position.z+=movescale;
-        }else if(event.key === 's'){
-            model.position.z-=movescale;
-        }else if(event.key === 'd'){
-            model.position.x-=movescale;
-        }else if(event.key === 'a'){
-            model.position.x+=movescale;
-        }
-        console.log(model.position)
-    }
+document.body.addEventListener('keydown',(event) => { // キーを押したか
+    if(event.key=="w"){wasd_down[0]=true;}
+    if(event.key=="a"){wasd_down[1]=true;}
+    if(event.key=="s"){wasd_down[2]=true;}
+    if(event.key=="d"){wasd_down[3]=true;}
+});
+document.body.addEventListener('keyup',(event) => { // キーを放したか
+    if(event.key=="w"){wasd_down[0]=false;}
+    if(event.key=="a"){wasd_down[1]=false;}
+    if(event.key=="s"){wasd_down[2]=false;}
+    if(event.key=="d"){wasd_down[3]=false;}
 });
 document.body.addEventListener('mousedown',(event) => {mousedown=true;mouseX_dec=0;comradi+=comradi_mov;comradi_mov=0;mouseX=0;});
 document.body.addEventListener('mouseup',(event) => {mousedown=false;});
@@ -86,14 +86,24 @@ window.addEventListener('resize',(event) => {
 });
 
 tick();
-// 毎フレーム時に実行されるループイベントです
 function tick() {
-  comradi_mov += (mouseX-comradi_mov)*0.06;
-   if(model!=null){
-     model.rotation.y=(comradi+comradi_mov)*2*Math.PI;
-     camera.position.x=model.position.x+Math.sin(model.rotation.y) *-1.5;
-     camera.position.z=model.position.z+Math.cos(model.rotation.y) *-1.5;
-     camera.lookAt(new THREE.Vector3(model.position.x, 0.01, model.position.z));}
+  comradi_mov += (mouseX-comradi_mov)*0.1;
+  if(model!=null){
+    // ↓動き
+    moveto=[0,0];
+    if (wasd_down[0] && !(wasd_down[2])) {moveto[1]+=1;if(wasd_down[3]){moveto[0]+=2;}}
+    if(wasd_down[1] && !(wasd_down[3])){moveto[1]+=1;moveto[0]+=0.5;}
+    if(wasd_down[2] && !(wasd_down[0])){moveto[1]+=1;moveto[0]+=1;}
+    if(wasd_down[3] && !(wasd_down[1])){moveto[1]+=1;moveto[0]+=1.5;}
+    if(moveto[1]>0){
+        model.position.x+=movescale*Math.sin(model.rotation.y+(moveto[0]/moveto[1])*Math.PI);
+        model.position.z+=movescale*Math.cos(model.rotation.y+(moveto[0]/moveto[1])*Math.PI);  }
+    model.rotation.y=(comradi+comradi_mov)*2*Math.PI;
+    camera.position.x=model.position.x+Math.sin(model.rotation.y) *-0.5;
+    camera.position.y=model.position.y+0.18;
+    camera.position.z=model.position.z+Math.cos(model.rotation.y) *-0.5;
+    camera.lookAt(new THREE.Vector3(model.position.x, 0.18, model.position.z));
+    }
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
   if(mixer){mixer.update(clock.getDelta());}
