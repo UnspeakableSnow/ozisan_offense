@@ -13,6 +13,7 @@ camera.position.set(0, 0, 0);
 // PL
 const loadergltf = new GLTFLoader();
 let model = null;
+let mixer;
 loadergltf.load( './shot_file/qbz-95_with_hands_and_animations.glb', function ( gltf ) {
 model = gltf.scene;
 const animations = gltf.animations;
@@ -26,7 +27,7 @@ if(animations && animations.length) {
     action.clampWhenFinished = true;
     action.play();}
 scene.add( model );
-model.position.set(10,0,60);
+model.position.set(10,0,0);
 console.log('成功' );
 }, function ( xhr ) {
       console.log( ( xhr.loaded / xhr.total * 100 ) + '% 読込済' );
@@ -34,11 +35,23 @@ console.log('成功' );
 console.error( error );
 } );
 
+// レティクル
+const picloader = new THREE.TextureLoader();
+const retexikuru = new THREE.Mesh(new THREE.PlaneGeometry( 0.15,0.15 ),  new THREE.MeshStandardMaterial({map: picloader.load("./shot_file/nc148346.png"), transparent: true,}) );
+scene.add( retexikuru );
+
+// 命中判定
+const geometry = new THREE.BoxGeometry( 0.03, 0.03, 20 );
+const material = new THREE.MeshBasicMaterial( {color: 0xFF0000} );
+const atarihantei = new THREE.Mesh( geometry, material );
+scene.add( atarihantei );
+
 // マップ
 let model_r = null;
-loadergltf.load( './shot_file/after_the_rain..._-_vr__sound-n.glb', function ( gltf ) {
+loadergltf.load( './shot_file/de_dust2_-_cs_map-rep.glb', function ( gltf ) {
 model_r = gltf.scene;
 scene.add( model_r );
+model_r.scale.set(2,2,2);
 model_r.position.set(0,-2,0);
 console.log('成功' );
 }, function ( xhr ) {
@@ -58,7 +71,6 @@ let mousedown=false;
 const movescale=0.2;//歩幅
 let wasd_down=[false,false,false,false];
 let moveto=[0,0];
-let mixer;
 let clock = new THREE.Clock();
 document.addEventListener("mousemove", (event) => {
     if(mouseX_dec==0){mouseX_dec=event.pageX;}
@@ -97,12 +109,20 @@ function tick() {
     if(wasd_down[3] && !(wasd_down[1])){moveto[1]+=1;moveto[0]+=1.5;}
     if(moveto[1]>0){
         model.position.x+=movescale*Math.sin(model.rotation.y+(moveto[0]/moveto[1])*Math.PI);
-        model.position.z+=movescale*Math.cos(model.rotation.y+(moveto[0]/moveto[1])*Math.PI);  }
+        model.position.z+=movescale*Math.cos(model.rotation.y+(moveto[0]/moveto[1])*Math.PI); }
     model.rotation.y=(comradi+comradi_mov)*2*Math.PI;
     camera.position.x=model.position.x+Math.sin(model.rotation.y) *-0.5;
     camera.position.y=model.position.y+0.18;
     camera.position.z=model.position.z+Math.cos(model.rotation.y) *-0.5;
     camera.lookAt(new THREE.Vector3(model.position.x, 0.18, model.position.z));
+    retexikuru.position.x=camera.position.x+Math.sin(model.rotation.y) ;
+    retexikuru.position.y=camera.position.y;
+    retexikuru.position.z=camera.position.z+Math.cos(model.rotation.y) ;
+    retexikuru.rotation.y=model.rotation.y+Math.PI;
+    atarihantei.position.x=camera.position.x+Math.sin(model.rotation.y)*11 ;
+    atarihantei.position.y=camera.position.y;
+    atarihantei.position.z=camera.position.z+Math.cos(model.rotation.y)*11 ;
+    atarihantei.rotation.y=model.rotation.y+Math.PI;
     }
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
@@ -114,3 +134,5 @@ function tick() {
 //"After the rain... - VR & Sound" (https://skfb.ly/6uQxu) by Aurélien Martel is licensed under Creative Commons Attribution-NonCommercial (http://creativecommons.org/licenses/by-nc/4.0/).
 //"QBZ-95 With Hands And Animations" (https://skfb.ly/oIvHr) by BillyTheKid is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 //"Abandoned Warehouse - Interior Scene" (https://skfb.ly/QQuJ) by Aurélien Martel is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+// "de_dust2 - CS map" (https://skfb.ly/6ACOH) by vrchris is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+// "LOWPOLY | FPS | TDM | GAME | MAP" (https://skfb.ly/oGypy) by Space_One is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
