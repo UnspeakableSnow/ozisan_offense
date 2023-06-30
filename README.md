@@ -78,3 +78,9 @@ DockerはCドライブ以外のダウンロード選択肢がないのでメイ�
 ![0629-2](活動記録！/0629-2.png)
 
 `"de_dust2 - CS map" (https://skfb.ly/6ACOH) by vrchris is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).`
+
+## 0630
+
+明日のために学校の課題片づける(\*´∀`\*)-３
+
+favicon.icoを変えて寝る。

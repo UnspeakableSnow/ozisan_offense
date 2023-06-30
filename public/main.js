@@ -103,7 +103,7 @@ function tick() {
   if(model!=null){
     // ↓動き
     moveto=[0,0];
-    if (wasd_down[0] && !(wasd_down[2])) {moveto[1]+=1;if(wasd_down[3]){moveto[0]+=2;}}
+    if(wasd_down[0] && !(wasd_down[2])){moveto[1]+=1;if(wasd_down[3]){moveto[0]+=2;}}
     if(wasd_down[1] && !(wasd_down[3])){moveto[1]+=1;moveto[0]+=0.5;}
     if(wasd_down[2] && !(wasd_down[0])){moveto[1]+=1;moveto[0]+=1;}
     if(wasd_down[3] && !(wasd_down[1])){moveto[1]+=1;moveto[0]+=1.5;}
