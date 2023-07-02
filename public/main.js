@@ -8,26 +8,22 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(width, height);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, width / height, 1, 10000);
-camera.position.set(0, 0, 0);
 const loadergltf = new GLTFLoader();
 
 // パーティクル
 const SIZE=3000;
 const vertices = [];
-for (let i = 0; i < 2000; i++) {
+for (var i = 0; i < 2000; i++) {
   const x = SIZE * (Math.random() - 0.5);
   const y = SIZE * (Math.random())+20;
   const z = SIZE * (Math.random() - 0.5);
   vertices.push(x, y, z);  }
-const geometry = new THREE.BufferGeometry();
-geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-const material = new THREE.PointsMaterial({size: 5,color: 0xffffff,});
-const mesh = new THREE.Points(geometry, material);
+const mesh = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3)), new THREE.PointsMaterial({size: 5,color: 0xffffff,}));
 scene.add(mesh);
 const models_dic={0:'./shot_file/desert_eagle_reload_animation.glb', 1:'./shot_file/fn_fal_reload_animation.glb', 2:'./shot_file/g3_reload_animation.glb'}
-const positions_dic={1:[10,0,0],2:[10,0,5],3:[12,0,3],4:[8,0,3]}
+const positions_dic={0:[10,0,0],1:[10,0,5],2:[12,0,3],3:[8,0,3]}
 
-class PL{
+class PL_ins{
   constructor(ID,model_type){
     this.ID=ID;
     this.model_type=model_type;
@@ -37,11 +33,10 @@ class PL{
   load(){
     this.model=null;
     this.mixer=null;
-    loadergltf.load(this.model_path, this.loading.bind(this), this.loading_txt.bind(this), function ( error ) {console.error( "PL"+String(this.ID)+" : "+error );} );
+    loadergltf.load(this.model_path, this.loading.bind(this), this.loading_txt.bind(this), function ( error ) {console.error( error );} );
   }
   loading=( gltf)=>{
     this.model = gltf.scene;
-    console.log(this.model_type);
     this.animations = gltf.animations;
     if(this.animations && this.animations.length){ this.mixer = new THREE.AnimationMixer(this.model); }
     scene.add( this.model );
@@ -49,12 +44,16 @@ class PL{
       this.model.scale.set(0.01,0.01,0.01);
     }else if (this.model_type==1){
       this.model.scale.set(0.85,0.85,0.85);
-      console.log("p");
     }
-    this.model.position.set(this.start_posi[0],this.start_posi[1],this.start_posi[2]);
+    this.model.position.x=-1000;
   }
   loading_txt(xhr){console.log( "PL"+String(this.ID)+" : "+( xhr.loaded / xhr.total * 100 ) + '% 読込済' );}
+  bef_start(){
+    this.model.position.set(this.start_posi[0],this.start_posi[1],this.start_posi[2]);
+    this.reroad();
+  }
   reroad(){
+    if(this.action){this.action.reset();}
     this.animation = this.animations[0];
     this.action = this.mixer.clipAction(this.animation) ;
     this.action.setLoop(THREE.LoopOnce);
@@ -62,18 +61,9 @@ class PL{
     this.action.play();}
 }
 
-
-const PL1=new PL(1,2);
-PL1.load();
-
-const PL2=new PL(2,1);
-PL2.load();
-
-const PL3=new PL(3,0);
-PL3.load();
-
-const PL4=new PL(4,1);
-PL4.load();
+const PL=[new PL_ins(0,1),new PL_ins(1,1),new PL_ins(2,2),new PL_ins(3,0)]
+for(var i=0;i<PL.length;i++){
+  PL[i].load(); }
 
 
 // レティクル
@@ -81,11 +71,32 @@ const picloader = new THREE.TextureLoader();
 const retexikuru = new THREE.Mesh(new THREE.PlaneGeometry( 0.15,0.15 ),  new THREE.MeshStandardMaterial({map: picloader.load("./shot_file/nc148346.png"), transparent: true,}) );
 scene.add( retexikuru );
 
-// 命中判定
-// const geometry = new THREE.BoxGeometry( 0.03, 0.03, 20 );
-// const material = new THREE.MeshBasicMaterial( {color: 0xFF0000} );
-// const atarihantei = new THREE.Mesh( geometry, material );
-// scene.add( atarihantei );
+// 弾
+class bullet_ins{
+  constructor(PLID){
+    this.bullet = new THREE.Mesh( new THREE.BoxGeometry( 0.03, 0.03, 0.06 ), new THREE.MeshBasicMaterial( {color: 0xFF0000} ) );
+    this.PLID=PLID;
+    this.vec=PL[this.PLID].model.rotation.y;
+    this.bul_gyokaku=cam_gyokaku;
+    this.bullet.position.x=PL[this.PLID].model.position.x+Math.cos(this.bul_gyokaku)*Math.sin(this.vec)*0.5
+    this.bullet.position.y=PL[this.PLID].model.position.y+1.9+Math.sin(this.bul_gyokaku) *0.5;
+    this.bullet.position.z=PL[this.PLID].model.position.z+Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*0.5;
+    this.bullet.rotation.y=this.vec;
+    scene.add( this.bullet );
+    this.speed=0.02
+    this.counter=200;
+  }
+  move(){
+    this.counter--;
+    if(this.counter<0){scene.remove(this.bullet);return -1;}
+    this.bullet.position.x+=Math.cos(this.bul_gyokaku)*Math.sin(this.vec)*this.speed;
+    this.bullet.position.y+=Math.sin(this.bul_gyokaku) *this.speed;
+    this.bullet.position.z+=Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*this.speed;
+    return 0;
+  }
+}
+let bullet_obj=[]
+
 
 // マップ
 let model_r = null;
@@ -94,9 +105,9 @@ model_r = gltf.scene;
 scene.add( model_r );
 model_r.scale.set(2,2,2);
 model_r.position.set(0,0,0);
-console.log('成功' );
+console.log('map : 成功' );
 }, function ( xhr ) {
-      console.log( ( xhr.loaded / xhr.total * 100 ) + '% 読込済' );
+      console.log( "map : "+( xhr.loaded / xhr.total * 100 ) + '% 読込済' );
 }, function ( error ) {
 console.error( error );
 } );
@@ -105,75 +116,69 @@ const light = new THREE.HemisphereLight(0x888888, 0x505000, 1.0);
 scene.add(light);
 
 let mouseX = 0;
-let mouseX_dec = 0;
 let mouseY = 0;
-let mouseY_dec = 0;
-let y_vel=0;
+let cam_gyokaku=0;
+let y_vec=0;
 let touch_grand=true;
-let comradi_mov=0;
-let comradi=0;
-let mousedown=false;
 const movescale=0.15;//歩幅
 let wasd_down=[false,false,false,false];
 let moveto=[0,0];
 let clock = new THREE.Clock();
 document.addEventListener("mousemove", (event) => {
-    if(mouseX_dec==0){mouseX_dec=event.pageX;}
-    if(mousedown){mouseX = (event.pageX-mouseX_dec)/ window.innerWidth;}
-    if(event.pageX/window.innerWidth<0.02 || 0.98<event.pageX/window.innerWidth){mousedown=false;}
+  if(event.pageX/width<0.05 || 0.95<event.pageX/width || 0.05>event.pageY/height || 0.95<event.pageY/height){mouseX=0;mouseY=0;}
+  else{mouseX=event.pageX/width-0.5;mouseY=event.pageY/height-0.5;}
 });
 document.body.addEventListener('keydown',(event) => { // キーを押したか
-    if(event.key=="w"){wasd_down[0]=true;}
-    if(event.key=="a"){wasd_down[1]=true;}
-    if(event.key=="s"){wasd_down[2]=true;}
-    if(event.key=="d"){wasd_down[3]=true;}
-    if(event.key=="r"){y_vel=1;PL1.reroad();}
+  if(event.key=="w"){wasd_down[0]=true;}
+  if(event.key=="a"){wasd_down[1]=true;}
+  if(event.key=="s"){wasd_down[2]=true;}
+  if(event.key=="d"){wasd_down[3]=true;}
+  if(event.key=="r"){PL[0].reroad();}
 });
 document.body.addEventListener('keyup',(event) => { // キーを放したか
-    if(event.key=="w"){wasd_down[0]=false;}
-    if(event.key=="a"){wasd_down[1]=false;}
-    if(event.key=="s"){wasd_down[2]=false;}
-    if(event.key=="d"){wasd_down[3]=false;}
+  if(event.key=="w"){wasd_down[0]=false;}
+  if(event.key=="a"){wasd_down[1]=false;}
+  if(event.key=="s"){wasd_down[2]=false;}
+  if(event.key=="d"){wasd_down[3]=false;}
 });
-document.body.addEventListener('mousedown',(event) => {mousedown=true;mouseX_dec=0;comradi+=comradi_mov;comradi_mov=0;mouseX=0;});
-document.body.addEventListener('mouseup',(event) => {mousedown=false;});
+document.body.addEventListener('mousedown',(event) => {bullet_obj.push(new bullet_ins(0));});
 window.addEventListener('resize',(event) => {
-    const width = window.innerWidth;const height = window.innerHeight;
+    width = window.innerWidth;height = window.innerHeight;
     renderer.setPixelRatio(window.devicePixelRatio);renderer.setSize(width, height);camera.aspect = width / height;
     camera.updateProjectionMatrix();
 });
 
 tick();
 function tick() {
-  
-  comradi_mov += (mouseX-comradi_mov)*0.1;
-  if(PL1.model!=null){
-    // ↓動き
+  if(PL[0].model!=null){
+    var ani_delta=clock.getDelta()
+    for(var i=0;i<PL.length;i++){
+      if(PL[i].model!=null && PL[i].model.position.x==-1000){PL[i].bef_start() }
+      if(PL[i].mixer){PL[i].mixer.update(ani_delta);}}
+    // ↓八方移動方角計算、移動
     moveto=[0,0];
     if(wasd_down[0] && !(wasd_down[2])){moveto[1]+=1;if(wasd_down[3]){moveto[0]+=2;}}
     if(wasd_down[1] && !(wasd_down[3])){moveto[1]+=1;moveto[0]+=0.5;}
     if(wasd_down[2] && !(wasd_down[0])){moveto[1]+=1;moveto[0]+=1;}
     if(wasd_down[3] && !(wasd_down[1])){moveto[1]+=1;moveto[0]+=1.5;}
     if(moveto[1]>0){
-        PL1.model.position.x+=movescale*Math.sin(PL1.model.rotation.y+(moveto[0]/moveto[1])*Math.PI);
-        PL1.model.position.z+=movescale*Math.cos(PL1.model.rotation.y+(moveto[0]/moveto[1])*Math.PI); }
-    PL1.model.rotation.y=(comradi+comradi_mov)*2*Math.PI;
-    camera.position.x=PL1.model.position.x+Math.sin(PL1.model.rotation.y) *-0.6;
-    camera.position.y=PL1.model.position.y+2;
-    camera.position.z=PL1.model.position.z+Math.cos(PL1.model.rotation.y) *-0.6;
-    camera.lookAt(new THREE.Vector3(PL1.model.position.x, PL1.model.position.y+1.9, PL1.model.position.z));
-    retexikuru.position.x=camera.position.x+Math.sin(PL1.model.rotation.y)*1.2;
-    retexikuru.position.y=camera.position.y;
-    retexikuru.position.z=camera.position.z+Math.cos(PL1.model.rotation.y)*1.2;
-    retexikuru.rotation.y=PL1.model.rotation.y+Math.PI;
-    // atarihantei.position.x=camera.position.x+Math.sin(PL1.model.rotation.y)*11 ;
-    // atarihantei.position.y=camera.position.y;
-    // atarihantei.position.z=camera.position.z+Math.cos(PL1.model.rotation.y)*11 ;
-    // atarihantei.rotation.y=PL1.model.rotation.y+Math.PI;
+        PL[0].model.position.x+=movescale*Math.sin(PL[0].model.rotation.y+(moveto[0]/moveto[1])*Math.PI);
+        PL[0].model.position.z+=movescale*Math.cos(PL[0].model.rotation.y+(moveto[0]/moveto[1])*Math.PI); }
+    PL[0].model.rotation.y-=mouseX*0.05;
+    if(cam_gyokaku-mouseY*0.05<0.4 &&cam_gyokaku-mouseY*0.05>-0.2){cam_gyokaku-=mouseY*0.05;}
+    camera.position.x=PL[0].model.position.x+Math.cos(cam_gyokaku)*Math.sin(PL[0].model.rotation.y) *-0.6;
+    camera.position.y=PL[0].model.position.y+2+Math.sin(cam_gyokaku) *-0.6;
+    camera.position.z=PL[0].model.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[0].model.rotation.y) *-0.6;
+    camera.lookAt(new THREE.Vector3(PL[0].model.position.x, PL[0].model.position.y+1.9, PL[0].model.position.z));
+    retexikuru.position.x=camera.position.x+Math.cos(cam_gyokaku)*Math.sin(PL[0].model.rotation.y)*1.2;
+    retexikuru.position.y=camera.position.y+Math.sin(cam_gyokaku) *1.2;
+    retexikuru.position.z=camera.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[0].model.rotation.y)*1.2;
+    retexikuru.rotation.y=PL[0].model.rotation.y+Math.PI;
+    var skkiped=0;
+    for(var i=0;i<bullet_obj.length;i++){var DelF=bullet_obj[i-skkiped].move();if(DelF==-1){bullet_obj.splice(i+skkiped,1);skkiped++;}}
     }
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
-  if(PL1.mixer){PL1.mixer.update(clock.getDelta());}
 }
 }
 
@@ -183,3 +188,6 @@ function tick() {
 //"Abandoned Warehouse - Interior Scene" (https://skfb.ly/QQuJ) by Aurélien Martel is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 // "de_dust2 - CS map" (https://skfb.ly/6ACOH) by vrchris is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 // "LOWPOLY | FPS | TDM | GAME | MAP" (https://skfb.ly/oGypy) by Space_One is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+// "Desert Eagle Reload Animation" (https://skfb.ly/6SNAK) by Stavich is licensed under Creative Commons Attribution-NonCommercial (http://creativecommons.org/licenses/by-nc/4.0/).
+// "G3 Reload Animation" (https://skfb.ly/6SSFz) by Stavich is licensed under Creative Commons Attribution-NonCommercial (http://creativecommons.org/licenses/by-nc/4.0/).
+// "FN FAL Reload Animation" (https://skfb.ly/6VUVA) by Stavich is licensed under CC Attribution-NonCommercial-NoDerivs (http://creativecommons.org/licenses/by-nc-nd/4.0/).
