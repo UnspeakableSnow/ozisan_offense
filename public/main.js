@@ -22,6 +22,8 @@ const mesh = new THREE.Points(new THREE.BufferGeometry().setAttribute('position'
 scene.add(mesh);
 const models_dic={0:'./shot_file/desert_eagle_reload_animation.glb', 1:'./shot_file/fn_fal_reload_animation.glb', 2:'./shot_file/g3_reload_animation.glb'}
 const positions_dic={0:[10,0,0],1:[10,0,5],2:[12,0,3],3:[8,0,3]}
+const myID=parseInt(Math.random()*4);
+console.log(myID);
 
 class PL_ins{
   constructor(ID,model_type){
@@ -83,15 +85,21 @@ class bullet_ins{
     this.bullet.position.z=PL[this.PLID].model.position.z+Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*0.5;
     this.bullet.rotation.y=this.vec;
     scene.add( this.bullet );
-    this.speed=0.02
+    this.speed=20;
     this.counter=200;
+    this.Ray = new THREE.Raycaster(this.bullet.position, new THREE.Vector3(Math.cos(this.bul_gyokaku)*Math.sin(this.vec),Math.sin(this.bul_gyokaku),Math.cos(this.bul_gyokaku)*Math.cos(this.vec)), 0, this.speed*ani_delta);
+    this.intersects = this.Ray.intersectObjects(scene.children);
+    if(this.intersects.length > 0){console.log(this.intersects);}
   }
   move(){
     this.counter--;
     if(this.counter<0){scene.remove(this.bullet);return -1;}
-    this.bullet.position.x+=Math.cos(this.bul_gyokaku)*Math.sin(this.vec)*this.speed;
-    this.bullet.position.y+=Math.sin(this.bul_gyokaku) *this.speed;
-    this.bullet.position.z+=Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*this.speed;
+    this.Ray.set(this.bullet.position, new THREE.Vector3(Math.cos(this.bul_gyokaku)*Math.sin(this.vec),Math.sin(this.bul_gyokaku),Math.cos(this.bul_gyokaku)*Math.cos(this.vec)));
+    this.intersects = this.Ray.intersectObjects(scene.children);
+    if(this.intersects.length > 0){this.intersects[0].object.material.color.set( 0xff0000 );scene.remove(this.bullet);return -1;}
+    this.bullet.position.x+=Math.cos(this.bul_gyokaku)*Math.sin(this.vec)*this.speed*ani_delta;
+    this.bullet.position.y+=Math.sin(this.bul_gyokaku) *this.speed*ani_delta;
+    this.bullet.position.z+=Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*this.speed*ani_delta;
     return 0;
   }
 }
@@ -124,6 +132,8 @@ const movescale=0.15;//歩幅
 let wasd_down=[false,false,false,false];
 let moveto=[0,0];
 let clock = new THREE.Clock();
+let ani_delta=0;
+let PLmoveRay = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(), 0, movescale);
 document.addEventListener("mousemove", (event) => {
   if(event.pageX/width<0.05 || 0.95<event.pageX/width || 0.05>event.pageY/height || 0.95<event.pageY/height){mouseX=0;mouseY=0;}
   else{mouseX=event.pageX/width-0.5;mouseY=event.pageY/height-0.5;}
@@ -133,7 +143,7 @@ document.body.addEventListener('keydown',(event) => { // キーを押したか
   if(event.key=="a"){wasd_down[1]=true;}
   if(event.key=="s"){wasd_down[2]=true;}
   if(event.key=="d"){wasd_down[3]=true;}
-  if(event.key=="r"){PL[0].reroad();}
+  if(event.key=="r"){PL[myID].reroad();}
 });
 document.body.addEventListener('keyup',(event) => { // キーを放したか
   if(event.key=="w"){wasd_down[0]=false;}
@@ -150,8 +160,8 @@ window.addEventListener('resize',(event) => {
 
 tick();
 function tick() {
-  if(PL[0].model!=null){
-    var ani_delta=clock.getDelta()
+  if(PL[myID].model!=null){
+    ani_delta=clock.getDelta()
     for(var i=0;i<PL.length;i++){
       if(PL[i].model!=null && PL[i].model.position.x==-1000){PL[i].bef_start() }
       if(PL[i].mixer){PL[i].mixer.update(ani_delta);}}
@@ -162,20 +172,28 @@ function tick() {
     if(wasd_down[2] && !(wasd_down[0])){moveto[1]+=1;moveto[0]+=1;}
     if(wasd_down[3] && !(wasd_down[1])){moveto[1]+=1;moveto[0]+=1.5;}
     if(moveto[1]>0){
-        PL[0].model.position.x+=movescale*Math.sin(PL[0].model.rotation.y+(moveto[0]/moveto[1])*Math.PI);
-        PL[0].model.position.z+=movescale*Math.cos(PL[0].model.rotation.y+(moveto[0]/moveto[1])*Math.PI); }
-    PL[0].model.rotation.y-=mouseX*0.05;
+      PLmoveRay.set(new THREE.Vector3(PL[myID].model.position.x+Math.sin(PL[myID].model.rotation.y) *-0.6,PL[myID].model.position.y,PL[myID].model.position.z+Math.cos(PL[myID].model.rotation.y) *-0.6),
+        new THREE.Vector3(Math.sin(PL[myID].model.rotation.y+(moveto[0]/moveto[1])*Math.PI),0,Math.sin(PL[myID].model.rotation.y+(moveto[0]/moveto[1])*Math.PI)));
+      var intersects = PLmoveRay.intersectObjects(scene.children);
+      if(intersects.length > 0){console.log(intersects);}
+      PL[myID].model.position.x+=movescale*Math.sin(PL[myID].model.rotation.y+(moveto[0]/moveto[1])*Math.PI);
+      PL[myID].model.position.z+=movescale*Math.cos(PL[myID].model.rotation.y+(moveto[0]/moveto[1])*Math.PI); }
+    PL[myID].model.rotation.y-=mouseX*0.05;
     if(cam_gyokaku-mouseY*0.05<0.4 &&cam_gyokaku-mouseY*0.05>-0.2){cam_gyokaku-=mouseY*0.05;}
-    camera.position.x=PL[0].model.position.x+Math.cos(cam_gyokaku)*Math.sin(PL[0].model.rotation.y) *-0.6;
-    camera.position.y=PL[0].model.position.y+2+Math.sin(cam_gyokaku) *-0.6;
-    camera.position.z=PL[0].model.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[0].model.rotation.y) *-0.6;
-    camera.lookAt(new THREE.Vector3(PL[0].model.position.x, PL[0].model.position.y+1.9, PL[0].model.position.z));
-    retexikuru.position.x=camera.position.x+Math.cos(cam_gyokaku)*Math.sin(PL[0].model.rotation.y)*1.2;
+    camera.position.x=PL[myID].model.position.x+Math.cos(cam_gyokaku)*Math.sin(PL[myID].model.rotation.y) *-0.6;
+    camera.position.y=PL[myID].model.position.y+2+Math.sin(cam_gyokaku) *-0.6;
+    camera.position.z=PL[myID].model.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[myID].model.rotation.y) *-0.6;
+    camera.lookAt(new THREE.Vector3(PL[myID].model.position.x, PL[myID].model.position.y+1.9, PL[myID].model.position.z));
+    retexikuru.position.x=camera.position.x+Math.cos(cam_gyokaku)*Math.sin(PL[myID].model.rotation.y)*1.2;
     retexikuru.position.y=camera.position.y+Math.sin(cam_gyokaku) *1.2;
-    retexikuru.position.z=camera.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[0].model.rotation.y)*1.2;
-    retexikuru.rotation.y=PL[0].model.rotation.y+Math.PI;
+    retexikuru.position.z=camera.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[myID].model.rotation.y)*1.2;
+    retexikuru.rotation.y=PL[myID].model.rotation.y+Math.PI;
     var skkiped=0;
     for(var i=0;i<bullet_obj.length;i++){var DelF=bullet_obj[i-skkiped].move();if(DelF==-1){bullet_obj.splice(i+skkiped,1);skkiped++;}}
+    console.log("to connect");
+    var socket=io();
+    // socket.emit('PLdata', PL[myID]);
+    // socket.on('PLdata', function(redata){PL[redata.ID]=redata;});
     }
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
@@ -183,8 +201,6 @@ function tick() {
 }
 
 //"The Bathroom (Free)" (https://skfb.ly/6ZYYo) by Evan is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
-//"After the rain... - VR & Sound" (https://skfb.ly/6uQxu) by Aurélien Martel is licensed under Creative Commons Attribution-NonCommercial (http://creativecommons.org/licenses/by-nc/4.0/).
-//"QBZ-95 With Hands And Animations" (https://skfb.ly/oIvHr) by BillyTheKid is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 //"Abandoned Warehouse - Interior Scene" (https://skfb.ly/QQuJ) by Aurélien Martel is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 // "de_dust2 - CS map" (https://skfb.ly/6ACOH) by vrchris is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 // "LOWPOLY | FPS | TDM | GAME | MAP" (https://skfb.ly/oGypy) by Space_One is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
