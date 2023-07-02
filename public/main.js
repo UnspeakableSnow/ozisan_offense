@@ -151,7 +151,7 @@ document.body.addEventListener('keyup',(event) => { // キーを放したか
   if(event.key=="s"){wasd_down[2]=false;}
   if(event.key=="d"){wasd_down[3]=false;}
 });
-document.body.addEventListener('mousedown',(event) => {bullet_obj.push(new bullet_ins(0));});
+document.body.addEventListener('mousedown',(event) => {bullet_obj.push(new bullet_ins(myID));});
 window.addEventListener('resize',(event) => {
     width = window.innerWidth;height = window.innerHeight;
     renderer.setPixelRatio(window.devicePixelRatio);renderer.setSize(width, height);camera.aspect = width / height;
@@ -191,7 +191,7 @@ function tick() {
     var skkiped=0;
     for(var i=0;i<bullet_obj.length;i++){var DelF=bullet_obj[i-skkiped].move();if(DelF==-1){bullet_obj.splice(i+skkiped,1);skkiped++;}}
     console.log("to connect");
-    var socket=io();
+    // var socket=io();
     // socket.emit('PLdata', PL[myID]);
     // socket.on('PLdata', function(redata){PL[redata.ID]=redata;});
     }
