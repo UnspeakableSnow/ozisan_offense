@@ -14,9 +14,13 @@
   }
 </script>
 <script type="module" src="main.js"></script>
+<style>@keyframes fadein-anim {100% {opacity: 1;}}@media screen and (max-width: 1100px){#titlewall{width:100%;}}</style>
 </head>
-<body>
- <canvas id="myCanvas"></canvas>
+<body style="margin:0; overflow:hidden;">
+  <div style="width:100vw; height:100vh; position:fixed; display:flex; align-items:center; text-align:center; background-color:black;">
+    <img id="titlewall" src="shot_file/ozisanoffense_logo.png" alt="" style="margin:auto;">
+  </div>
+  <canvas id="myCanvas" style="opacity: 0; z-index:10;"></canvas>
 </p>
 </body>
 </html>

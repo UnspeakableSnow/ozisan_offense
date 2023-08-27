@@ -2,15 +2,19 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 window.addEventListener('DOMContentLoaded', init);
 let width = window.innerWidth;let height = window.innerHeight;
+
 function init() {
 const renderer = new THREE.WebGLRenderer({
   canvas: document.querySelector('#myCanvas')});
 renderer.setSize(width, height);
+const models_dic={0:'./shot_file/desert_eagle_reload_animation.glb', 1:'./shot_file/fn_fal_reload_animation.glb', 2:'./shot_file/g3_reload_animation.glb'}
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, width / height, 1, 10000);
 const loadergltf = new GLTFLoader();
+const socket=io();
+let gamemode=0;
 
-// パーティクル
+// 星空
 const SIZE=3000;
 const vertices = [];
 for (var i = 0; i < 2000; i++) {
@@ -18,21 +22,20 @@ for (var i = 0; i < 2000; i++) {
   const y = SIZE * (Math.random())+20;
   const z = SIZE * (Math.random() - 0.5);
   vertices.push(x, y, z);  }
-const mesh = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3)), new THREE.PointsMaterial({size: 5,color: 0xffffff,}));
-scene.add(mesh);
-const models_dic={0:'./shot_file/desert_eagle_reload_animation.glb', 1:'./shot_file/fn_fal_reload_animation.glb', 2:'./shot_file/g3_reload_animation.glb'}
-const positions_dic={0:[10,0,0],1:[10,0,5],2:[12,0,3],3:[8,0,3]}
-const myID=parseInt(Math.random()*4);
-console.log(myID);
+const stars = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3)), new THREE.PointsMaterial({size: 5,color: 0xffffff,}));
+scene.add(stars);
+let myID=0;
 
 class PL_ins{
-  constructor(ID,model_type){
+  constructor(ID,type,HP,startposition){
     this.ID=ID;
-    this.model_type=model_type;
-    this.model_path=models_dic[String(model_type)];
-    this.start_posi=positions_dic[String(this.ID)];
-  }
-  load(){
+    this.type=type;
+    if(type==-1) return -1;
+    this.model_path=models_dic[String(type)];
+    this.HP=HP
+    this.realposi=startposition;
+    this.modelloadcompd=0;
+    this.statuses=0;  // モデルロード|ロード直後のbef_start
     this.model=null;
     this.mixer=null;
     loadergltf.load(this.model_path, this.loading.bind(this), this.loading_txt.bind(this), function ( error ) {console.error( error );} );
@@ -41,32 +44,42 @@ class PL_ins{
     this.model = gltf.scene;
     this.animations = gltf.animations;
     if(this.animations && this.animations.length){ this.mixer = new THREE.AnimationMixer(this.model); }
-    scene.add( this.model );
-    if (this.model_type==0 || this.model_type==2){
+    scene.add(this.model);
+    if (this.type==0 || this.type==2){
       this.model.scale.set(0.01,0.01,0.01);
-    }else if (this.model_type==1){
+    }else if (this.type==1){
       this.model.scale.set(0.85,0.85,0.85);
     }
-    this.model.position.x=-1000;
+    if(this.model){this.statuses|=0b10;}
   }
-  loading_txt(xhr){console.log( "PL"+String(this.ID)+" : "+( xhr.loaded / xhr.total * 100 ) + '% 読込済' );}
+  loading_txt(xhr){this.modelloadcompd=0;}
   bef_start(){
-    this.model.position.set(this.start_posi[0],this.start_posi[1],this.start_posi[2]);
-    this.reroad();
-  }
+    this.reroad()
+    this.statuses|=0b1;  }
+
   reroad(){
     if(this.action){this.action.reset();}
+    if(!this.animations)return 1;
     this.animation = this.animations[0];
     this.action = this.mixer.clipAction(this.animation) ;
     this.action.setLoop(THREE.LoopOnce);
     this.action.clampWhenFinished = true;
-    this.action.play();}
+    this.action.play();  }
+
+  update(){
+    if(!(this.statuses&0b10)) return -1;
+    if(!(this.statuses&0b1))this.bef_start();
+    if(((this.model.position.x-this.realposi[0])**2+ (this.model.position.y-this.realposi[1])**2+ (this.model.position.z-this.realposi[2])**2)>0.2){
+      this.model.position.x+=(this.realposi[0]-this.model.position.x)*0.3;
+      this.model.position.y+=(this.realposi[1]-this.model.position.y)*0.3;
+      this.model.position.z+=(this.realposi[2]-this.model.position.z)*0.3;
+    }
+    if((this.model.rotation.y-this.realposi[3])**2>0) this.model.rotation.y=this.realposi[3];
+    if(this.mixer)this.mixer.update(time_delta);
+  }
 }
 
-const PL=[new PL_ins(0,1),new PL_ins(1,1),new PL_ins(2,2),new PL_ins(3,0)]
-for(var i=0;i<PL.length;i++){
-  PL[i].load(); }
-
+let PL=[];
 
 // レティクル
 const picloader = new THREE.TextureLoader();
@@ -81,32 +94,55 @@ class bullet_ins{
     this.vec=PL[this.PLID].model.rotation.y;
     this.bul_gyokaku=cam_gyokaku;
     this.bullet.position.x=PL[this.PLID].model.position.x+Math.cos(this.bul_gyokaku)*Math.sin(this.vec)*0.5
-    this.bullet.position.y=PL[this.PLID].model.position.y+1.9+Math.sin(this.bul_gyokaku) *0.5;
+    this.bullet.position.y=PL[this.PLID].model.position.y+1.985+Math.sin(this.bul_gyokaku) *0.5;
     this.bullet.position.z=PL[this.PLID].model.position.z+Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*0.5;
     this.bullet.rotation.y=this.vec;
     scene.add( this.bullet );
     this.speed=20;
     this.counter=200;
-    this.Ray = new THREE.Raycaster(this.bullet.position, new THREE.Vector3(Math.cos(this.bul_gyokaku)*Math.sin(this.vec),Math.sin(this.bul_gyokaku),Math.cos(this.bul_gyokaku)*Math.cos(this.vec)), 0, this.speed*ani_delta);
-    this.intersects = this.Ray.intersectObjects(scene.children);
-    if(this.intersects.length > 0){console.log(this.intersects);}
   }
   move(){
     this.counter--;
     if(this.counter<0){scene.remove(this.bullet);return -1;}
-    this.Ray.set(this.bullet.position, new THREE.Vector3(Math.cos(this.bul_gyokaku)*Math.sin(this.vec),Math.sin(this.bul_gyokaku),Math.cos(this.bul_gyokaku)*Math.cos(this.vec)));
-    this.intersects = this.Ray.intersectObjects(scene.children);
-    if(this.intersects.length > 0){this.intersects[0].object.material.color.set( 0xff0000 );scene.remove(this.bullet);return -1;}
-    this.bullet.position.x+=Math.cos(this.bul_gyokaku)*Math.sin(this.vec)*this.speed*ani_delta;
-    this.bullet.position.y+=Math.sin(this.bul_gyokaku) *this.speed*ani_delta;
-    this.bullet.position.z+=Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*this.speed*ani_delta;
+    PL.forEach(col => {
+      if(col.type==-1) return -1;
+      if(col.ID!=this.PLID && this.bullet.position.y-col.realposi[1]>0 && this.bullet.position.y-col.realposi[1]<1.9){
+        var dist=(this.bullet.position.x-col.realposi[0])**2 + (this.bullet.position.z-col.realposi[2])**2
+        if(dist<0.15){
+          console.log(col.ID);
+          scene.remove(this.bullet);
+          this.counter=0;
+          return -1;
+        }  }
+    });
+    this.bullet.position.x+=Math.cos(this.bul_gyokaku)*Math.sin(this.vec)*this.speed*time_delta;
+    this.bullet.position.y+=Math.sin(this.bul_gyokaku) *this.speed*time_delta;
+    this.bullet.position.z+=Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*this.speed*time_delta;
     return 0;
   }
 }
 let bullet_obj=[]
 
+function camset(mode,model){
+  switch(mode){
+    case 0:
+      if(!model) return -1;
+      if(cam_gyokaku-mouseY*0.05<0.4 &&cam_gyokaku-mouseY*0.05>-0.2){cam_gyokaku-=mouseY*0.05;}
+      camera.position.x=model.position.x+Math.cos(cam_gyokaku)*Math.sin(model.rotation.y) *-0.6;
+      camera.position.y=model.position.y+2+Math.sin(cam_gyokaku) *-0.6;
+      camera.position.z=model.position.z+Math.cos(cam_gyokaku)*Math.cos(model.rotation.y) *-0.6;
+      camera.lookAt(new THREE.Vector3(model.position.x, model.position.y+1.9, model.position.z));
+      retexikuru.position.x=camera.position.x+Math.cos(cam_gyokaku)*Math.sin(model.rotation.y)*1.2;
+      retexikuru.position.y=camera.position.y+Math.sin(cam_gyokaku) *1.2;
+      retexikuru.position.z=camera.position.z+Math.cos(cam_gyokaku)*Math.cos(model.rotation.y)*1.2;
+      retexikuru.rotation.y=model.rotation.y+Math.PI;
+      break;
+  }
+}
+
 
 // マップ
+let maploadcompd=0;
 let model_r = null;
 loadergltf.load( './shot_file/de_dust2_-_cs_map-rep.glb', function ( gltf ) {
 model_r = gltf.scene;
@@ -115,7 +151,8 @@ model_r.scale.set(2,2,2);
 model_r.position.set(0,0,0);
 console.log('map : 成功' );
 }, function ( xhr ) {
-      console.log( "map : "+( xhr.loaded / xhr.total * 100 ) + '% 読込済' );
+      // console.log( "map : "+( xhr.loaded / xhr.total * 100 ) + '% 読込済' );
+      maploadcompd=xhr.loaded/xhr.total;
 }, function ( error ) {
 console.error( error );
 } );
@@ -132,8 +169,8 @@ const movescale=0.15;//歩幅
 let wasd_down=[false,false,false,false];
 let moveto=[0,0];
 let clock = new THREE.Clock();
-let ani_delta=0;
-let PLmoveRay = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(), 0, movescale);
+let time_delta=0;
+let setupPL=0;
 document.addEventListener("mousemove", (event) => {
   if(event.pageX/width<0.05 || 0.95<event.pageX/width || 0.05>event.pageY/height || 0.95<event.pageY/height){mouseX=0;mouseY=0;}
   else{mouseX=event.pageX/width-0.5;mouseY=event.pageY/height-0.5;}
@@ -154,47 +191,64 @@ document.body.addEventListener('keyup',(event) => { // キーを放したか
 document.body.addEventListener('mousedown',(event) => {bullet_obj.push(new bullet_ins(myID));});
 window.addEventListener('resize',(event) => {
     width = window.innerWidth;height = window.innerHeight;
-    renderer.setPixelRatio(window.devicePixelRatio);renderer.setSize(width, height);camera.aspect = width / height;
+    renderer.setPixelRatio(window.devicePixelRatio);renderer.setSize(width, height);
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
 });
 
+socket.on('reqType', ()=>{socket.emit('setType', Number(prompt('武器を選択')));});
+socket.on('adopt', (setupdata)=>{
+  myID=setupdata[0];
+  setupPL=setupdata[1];
+  gamemode=1;
+});
+socket.on('PLnull', (loc)=>{if(gamemode<1) return -1;  PL.push(loc)});
+socket.on('append', (loc)=>{
+  if(gamemode<1) return -1;
+  if(PL.length>loc[1]) PL.splice( loc[1], 1, new PL_ins(loc[1],loc[2],loc[3],loc[4]));
+  else console.error("なんかおかしい");
+});
+socket.on('updata', function(loc){PL[loc[0]]=loc[1];});
+
 tick();
 function tick() {
-  if(PL[myID].model!=null){
-    ani_delta=clock.getDelta()
-    for(var i=0;i<PL.length;i++){
-      if(PL[i].model!=null && PL[i].model.position.x==-1000){PL[i].bef_start() }
-      if(PL[i].mixer){PL[i].mixer.update(ani_delta);}}
-    // ↓八方移動方角計算、移動
-    moveto=[0,0];
-    if(wasd_down[0] && !(wasd_down[2])){moveto[1]+=1;if(wasd_down[3]){moveto[0]+=2;}}
-    if(wasd_down[1] && !(wasd_down[3])){moveto[1]+=1;moveto[0]+=0.5;}
-    if(wasd_down[2] && !(wasd_down[0])){moveto[1]+=1;moveto[0]+=1;}
-    if(wasd_down[3] && !(wasd_down[1])){moveto[1]+=1;moveto[0]+=1.5;}
-    if(moveto[1]>0){
-      PLmoveRay.set(new THREE.Vector3(PL[myID].model.position.x+Math.sin(PL[myID].model.rotation.y) *-0.6,PL[myID].model.position.y,PL[myID].model.position.z+Math.cos(PL[myID].model.rotation.y) *-0.6),
-        new THREE.Vector3(Math.sin(PL[myID].model.rotation.y+(moveto[0]/moveto[1])*Math.PI),0,Math.sin(PL[myID].model.rotation.y+(moveto[0]/moveto[1])*Math.PI)));
-      var intersects = PLmoveRay.intersectObjects(scene.children);
-      if(intersects.length > 0){console.log(intersects);}
-      PL[myID].model.position.x+=movescale*Math.sin(PL[myID].model.rotation.y+(moveto[0]/moveto[1])*Math.PI);
-      PL[myID].model.position.z+=movescale*Math.cos(PL[myID].model.rotation.y+(moveto[0]/moveto[1])*Math.PI); }
-    PL[myID].model.rotation.y-=mouseX*0.05;
-    if(cam_gyokaku-mouseY*0.05<0.4 &&cam_gyokaku-mouseY*0.05>-0.2){cam_gyokaku-=mouseY*0.05;}
-    camera.position.x=PL[myID].model.position.x+Math.cos(cam_gyokaku)*Math.sin(PL[myID].model.rotation.y) *-0.6;
-    camera.position.y=PL[myID].model.position.y+2+Math.sin(cam_gyokaku) *-0.6;
-    camera.position.z=PL[myID].model.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[myID].model.rotation.y) *-0.6;
-    camera.lookAt(new THREE.Vector3(PL[myID].model.position.x, PL[myID].model.position.y+1.9, PL[myID].model.position.z));
-    retexikuru.position.x=camera.position.x+Math.cos(cam_gyokaku)*Math.sin(PL[myID].model.rotation.y)*1.2;
-    retexikuru.position.y=camera.position.y+Math.sin(cam_gyokaku) *1.2;
-    retexikuru.position.z=camera.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[myID].model.rotation.y)*1.2;
-    retexikuru.rotation.y=PL[myID].model.rotation.y+Math.PI;
+time_delta=clock.getDelta();
+switch(gamemode){
+  case 0:
+    break;
+  case 1:
+    if(PL.length==0){setupPL.forEach(col=> {PL.push(new PL_ins(col[1],col[2],col[3],col[4]));});}
+    var totalcompd = PL.reduce(function(sum, element){return sum + element.modelloadcompd;}, 0);
+    var compper=(maploadcompd+totalcompd)/(1+PL.length);
+    console.log(compper)
+    if(compper=1){
+      gamemode=2;
+      var style = document.createElement('style');
+      style.innerHTML = `#myCanvas{animation: fadein-anim 1s linear forwards;}`;
+      document.body.appendChild(style);
+    }
+    break;
+  case 2:
+    for(var i=0;i<PL.length;i++){PL[i].update();}
     var skkiped=0;
     for(var i=0;i<bullet_obj.length;i++){var DelF=bullet_obj[i-skkiped].move();if(DelF==-1){bullet_obj.splice(i+skkiped,1);skkiped++;}}
-    console.log("to connect");
-    // var socket=io();
-    // socket.emit('PLdata', PL[myID]);
-    // socket.on('PLdata', function(redata){PL[redata.ID]=redata;});
-    }
+  
+      // ↓八方移動方角計算、移動
+      moveto=[0,0];
+      if(wasd_down[0] && !(wasd_down[2])){moveto[1]+=1;if(wasd_down[3]){moveto[0]+=2;}}
+      if(wasd_down[1] && !(wasd_down[3])){moveto[1]+=1;moveto[0]+=0.5;}
+      if(wasd_down[2] && !(wasd_down[0])){moveto[1]+=1;moveto[0]+=1;}
+      if(wasd_down[3] && !(wasd_down[1])){moveto[1]+=1;moveto[0]+=1.5;}
+      if(PL[myID].statuses&0b10){
+        if(moveto[1]>0){
+          PL[myID].realposi[0]+=movescale*Math.sin(PL[myID].model.rotation.y+(moveto[0]/moveto[1])*Math.PI);
+          PL[myID].realposi[2]+=movescale*Math.cos(PL[myID].model.rotation.y+(moveto[0]/moveto[1])*Math.PI); }
+        PL[myID].realposi[3]-=mouseX*0.05;
+        socket.emit('PLdata', PL[myID].realposi);
+      }
+      camset(0,PL[myID].model);
+    break;
+  }
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
