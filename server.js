@@ -55,4 +55,12 @@ io.on('connection', function(socket){
     PLs[ID][4]=posi;
     io.to(room).emit('downdata', [ID,posi]);
   });
+
+  socket.on('shot', function(cam_gyokaku){
+    io.to(room).emit('creBul', [ID,cam_gyokaku]);
+  });
+  socket.on('upHP', function(data){
+    PLs[data[0]][3]=data[1]
+    io.to(room).emit('downHP', data);
+  });
 });

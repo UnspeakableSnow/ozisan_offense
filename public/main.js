@@ -30,7 +30,6 @@ class PL_ins{
   constructor(ID,type,HP,startposition){
     this.ID=ID;
     this.type=type;
-    if(type==-1) return -1;
     this.model_path=models_dic[String(type)];
     this.HP=HP
     this.realposi=startposition;
@@ -38,6 +37,7 @@ class PL_ins{
     this.statuses=0;  // モデルロード|ロード直後のbef_start
     this.model=null;
     this.mixer=null;
+    if(type==-1) return -1;
     loadergltf.load(this.model_path, this.loading.bind(this), this.loading_txt.bind(this), function ( error ) {console.error( error );} );
   }
   loading=( gltf)=>{
@@ -69,7 +69,7 @@ class PL_ins{
   update(){
     if(!(this.statuses&0b10)) return -1;
     if(!(this.statuses&0b1))this.bef_start();
-    if(((this.model.position.x-this.realposi[0])**2+ (this.model.position.y-this.realposi[1])**2+ (this.model.position.z-this.realposi[2])**2)>0.2){
+    if(((this.model.position.x-this.realposi[0])**2+ (this.model.position.y-this.realposi[1])**2+ (this.model.position.z-this.realposi[2])**2)>0.00002){
       this.model.position.x+=(this.realposi[0]-this.model.position.x)*0.3;
       this.model.position.y+=(this.realposi[1]-this.model.position.y)*0.3;
       this.model.position.z+=(this.realposi[2]-this.model.position.z)*0.3;
@@ -81,61 +81,76 @@ class PL_ins{
 
 let PL=[];
 
-// レティクル
-const picloader = new THREE.TextureLoader();
-const retexikuru = new THREE.Mesh(new THREE.PlaneGeometry( 0.15,0.15 ),  new THREE.MeshStandardMaterial({map: picloader.load("./shot_file/nc148346.png"), transparent: true,}) );
-scene.add( retexikuru );
-
 // 弾
 class bullet_ins{
-  constructor(PLID){
+  constructor(PLID,bul_gyokaku){
     this.bullet = new THREE.Mesh( new THREE.BoxGeometry( 0.03, 0.03, 0.06 ), new THREE.MeshBasicMaterial( {color: 0xFF0000} ) );
     this.PLID=PLID;
-    this.vec=PL[this.PLID].model.rotation.y;
-    this.bul_gyokaku=cam_gyokaku;
-    this.bullet.position.x=PL[this.PLID].model.position.x+Math.cos(this.bul_gyokaku)*Math.sin(this.vec)*0.5
-    this.bullet.position.y=PL[this.PLID].model.position.y+1.985+Math.sin(this.bul_gyokaku) *0.5;
-    this.bullet.position.z=PL[this.PLID].model.position.z+Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*0.5;
+    this.vec=PL[this.PLID].realposi[3];
+    this.bul_gyokaku=bul_gyokaku;
+    this.bullet.position.x=PL[this.PLID].realposi[0]+Math.cos(this.bul_gyokaku)*Math.sin(this.vec)*0.5;
+    this.bullet.position.y=PL[this.PLID].realposi[1]+1.985+Math.sin(this.bul_gyokaku) *0.5;
+    this.bullet.position.z=PL[this.PLID].realposi[2]+Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*0.5;
     this.bullet.rotation.y=this.vec;
     scene.add( this.bullet );
     this.speed=20;
     this.counter=200;
   }
   move(){
-    this.counter--;
-    if(this.counter<0){scene.remove(this.bullet);return -1;}
+    for(var i=0;i<this.speed*time_delta;i+=0.01){  // バレットの当たり判定
+    var kx= this.bullet.position.x+Math.cos(this.bul_gyokaku)*Math.sin(this.vec)*i;
+    var ky= this.bullet.position.y+Math.sin(this.bul_gyokaku)*i;
+    var kz= this.bullet.position.z+Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*i;
     PL.forEach(col => {
-      if(col.type==-1) return -1;
-      if(col.ID!=this.PLID && this.bullet.position.y-col.realposi[1]>0 && this.bullet.position.y-col.realposi[1]<1.9){
-        var dist=(this.bullet.position.x-col.realposi[0])**2 + (this.bullet.position.z-col.realposi[2])**2
+      if(col.type==-1 || this.counter<0) return -1;
+      if(col.ID!=this.PLID && ky-col.realposi[1]>0 && ky-col.realposi[1]<1.9){
+        var dist=(kx-col.realposi[0])**2 + (kz-col.realposi[2])**2;
         if(dist<0.15){
           console.log(col.ID);
+          this.counter=-1;
+          if(this.PLID==myID)socket.emit("upHP",[col.ID,col.HP-1]);
           scene.remove(this.bullet);
-          this.counter=0;
-          return -1;
-        }  }
-    });
+          return -1;  }
+    }  });  }
+    this.counter-=this.speed*time_delta;
+    if(this.counter<0){scene.remove(this.bullet);return -1;}
     this.bullet.position.x+=Math.cos(this.bul_gyokaku)*Math.sin(this.vec)*this.speed*time_delta;
-    this.bullet.position.y+=Math.sin(this.bul_gyokaku) *this.speed*time_delta;
+    this.bullet.position.y+=Math.sin(this.bul_gyokaku)*this.speed*time_delta;
     this.bullet.position.z+=Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*this.speed*time_delta;
     return 0;
   }
 }
-let bullet_obj=[]
+let bullet_obj=[];
 
-function camset(mode,model){
+
+// レティクル
+const picloader = new THREE.TextureLoader();
+const retexikuru = new THREE.Mesh(new THREE.PlaneGeometry( 0.15,0.15 ),  new THREE.MeshStandardMaterial({map: picloader.load("./shot_file/nc148346.png"), transparent: true,}) );
+scene.add( retexikuru );
+
+// HPバー
+const HPbar = new THREE.Mesh(new THREE.PlaneGeometry( 0.3,0.02 ),  new THREE.MeshStandardMaterial({color: 0x00ff00}) );
+scene.add( HPbar );
+
+
+function camset(mode,ID){
   switch(mode){
     case 0:
-      if(!model) return -1;
+      if(!PL[ID].model) return -1;
       if(cam_gyokaku-mouseY*0.05<0.4 &&cam_gyokaku-mouseY*0.05>-0.2){cam_gyokaku-=mouseY*0.05;}
-      camera.position.x=model.position.x+Math.cos(cam_gyokaku)*Math.sin(model.rotation.y) *-0.6;
-      camera.position.y=model.position.y+2+Math.sin(cam_gyokaku) *-0.6;
-      camera.position.z=model.position.z+Math.cos(cam_gyokaku)*Math.cos(model.rotation.y) *-0.6;
-      camera.lookAt(new THREE.Vector3(model.position.x, model.position.y+1.9, model.position.z));
-      retexikuru.position.x=camera.position.x+Math.cos(cam_gyokaku)*Math.sin(model.rotation.y)*1.2;
+      camera.position.x=PL[ID].model.position.x+Math.cos(cam_gyokaku)*Math.sin(PL[ID].model.rotation.y) *-0.6;
+      camera.position.y=PL[ID].model.position.y+2+Math.sin(cam_gyokaku) *-0.6;
+      camera.position.z=PL[ID].model.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[ID].model.rotation.y) *-0.6;
+      camera.lookAt(new THREE.Vector3(PL[ID].model.position.x, PL[ID].model.position.y+1.9, PL[ID].model.position.z));
+      retexikuru.position.x=camera.position.x+Math.cos(cam_gyokaku)*Math.sin(PL[ID].model.rotation.y)*1.2;
       retexikuru.position.y=camera.position.y+Math.sin(cam_gyokaku) *1.2;
-      retexikuru.position.z=camera.position.z+Math.cos(cam_gyokaku)*Math.cos(model.rotation.y)*1.2;
-      retexikuru.rotation.y=model.rotation.y+Math.PI;
+      retexikuru.position.z=camera.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[ID].model.rotation.y)*1.2;
+      retexikuru.rotation.y=PL[ID].model.rotation.y+Math.PI;
+      HPbar.position.x=camera.position.x+Math.cos(cam_gyokaku)*Math.sin(PL[ID].model.rotation.y)*1.2;
+      HPbar.position.y=camera.position.y+Math.sin(cam_gyokaku) *1.2+0.2;
+      HPbar.position.z=camera.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[ID].model.rotation.y)*1.2;
+      HPbar.rotation.y=PL[ID].model.rotation.y+Math.PI;
+      HPbar.scale.x=PL[ID].HP/100;
       break;
   }
 }
@@ -163,8 +178,8 @@ scene.add(light);
 let mouseX = 0;
 let mouseY = 0;
 let cam_gyokaku=0;
-let y_vec=0;
-let touch_grand=true;
+// let y_vec=0;
+// let touch_grand=true;
 const movescale=0.15;//歩幅
 let wasd_down=[false,false,false,false];
 let moveto=[0,0];
@@ -188,7 +203,8 @@ document.body.addEventListener('keyup',(event) => { // キーを放したか
   if(event.key=="s"){wasd_down[2]=false;}
   if(event.key=="d"){wasd_down[3]=false;}
 });
-document.body.addEventListener('mousedown',(event) => {bullet_obj.push(new bullet_ins(myID));});
+document.body.addEventListener('mousedown',(event) => {
+  if(gamemode==2)socket.emit('shot', cam_gyokaku);});
 window.addEventListener('resize',(event) => {
     width = window.innerWidth;height = window.innerHeight;
     renderer.setPixelRatio(window.devicePixelRatio);renderer.setSize(width, height);
@@ -202,13 +218,17 @@ socket.on('adopt', (setupdata)=>{
   setupPL=setupdata[1];
   gamemode=1;
 });
-socket.on('PLnull', (loc)=>{if(gamemode<1) return -1;  PL.push(loc)});
+socket.on('PLnull', (loc)=>{if(gamemode<1) return -1; PL.push(new PL_ins(loc[1],loc[2],loc[3],loc[4]))});
 socket.on('append', (loc)=>{
   if(gamemode<1) return -1;
   if(PL.length>loc[1]) PL.splice( loc[1], 1, new PL_ins(loc[1],loc[2],loc[3],loc[4]));
   else console.error("なんかおかしい");
 });
-socket.on('updata', function(loc){PL[loc[0]]=loc[1];});
+socket.on('creBul', (data)=>{
+  if(gamemode==2)bullet_obj.push(new bullet_ins(data[0],data[1]));
+});
+socket.on('downdata', function(loc){PL[loc[0]].realposi=loc[1];});
+socket.on('downHP', function(loc){PL[loc[0]].HP=loc[1];});
 
 tick();
 function tick() {
@@ -220,7 +240,7 @@ switch(gamemode){
     if(PL.length==0){setupPL.forEach(col=> {PL.push(new PL_ins(col[1],col[2],col[3],col[4]));});}
     var totalcompd = PL.reduce(function(sum, element){return sum + element.modelloadcompd;}, 0);
     var compper=(maploadcompd+totalcompd)/(1+PL.length);
-    console.log(compper)
+    console.log("load compd:",compper);
     if(compper=1){
       gamemode=2;
       var style = document.createElement('style');
@@ -244,9 +264,9 @@ switch(gamemode){
           PL[myID].realposi[0]+=movescale*Math.sin(PL[myID].model.rotation.y+(moveto[0]/moveto[1])*Math.PI);
           PL[myID].realposi[2]+=movescale*Math.cos(PL[myID].model.rotation.y+(moveto[0]/moveto[1])*Math.PI); }
         PL[myID].realposi[3]-=mouseX*0.05;
-        socket.emit('PLdata', PL[myID].realposi);
+        socket.emit('updata', PL[myID].realposi);
       }
-      camset(0,PL[myID].model);
+      camset(0,myID);
     break;
   }
   renderer.render(scene, camera);
