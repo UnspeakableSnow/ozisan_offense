@@ -24,7 +24,7 @@ const PLstartPositions=[[10,0,0,0],[7,0,0,0],[10,0,7,0],[7,0,-7,0],[7,0,14,0],[7
 
 ipToID.set("0",PLs.length);
 var startposi=PLstartPositions[PLs.length%PLstartPositions.length];
-PLs.push(["0",PLs.length,1,100,startposi]);
+PLs.push(["0",PLs.length,1,10,startposi,0,false]);
 
 io.on('connection', function(socket){
   var ip= socket.handshake.address;
@@ -33,18 +33,18 @@ io.on('connection', function(socket){
   var room="0";
   if(! ipToID.has(ip)){
     ipToID.set(ip,PLs.length);
-    var startposi=PLstartPositions[PLs.length%PLstartPositions.length];
-    PLs.push([room,PLs.length,-1,100,startposi]);
+    PLs.push([room,PLs.length,-1,10,[0,0,0,0],0,false]); //部屋、ID、type、HP、posi、score、siting
     io.to(room).emit('PLnull', PLs[ipToID.get(ip)]);
   }
   var ID= ipToID.get(ip);
+  var startposi=PLstartPositions[ID%PLstartPositions.length];
   socket.join(room);
   if(PLs[ID][2]==-1) io.to(socket.id).emit('reqType', null);
   else io.to(socket.id).emit('adopt', [ID, PLs]);
 
   socket.on('setType',(type)=>{
-      PLs[ID][2]=type;
     if(type!=null && type>=0 && 3>type){
+      PLs[ID][2]=type;
       console.log(ip,"selected",type);
       io.to(room).emit('append', PLs[ID]);
       io.to(socket.id).emit('adopt', [ID,PLs]);
@@ -60,7 +60,17 @@ io.on('connection', function(socket){
     io.to(room).emit('creBul', [ID,cam_gyokaku]);
   });
   socket.on('upHP', function(data){
-    PLs[data[0]][3]=data[1]
-    io.to(room).emit('downHP', data);
+    PLs[data[0]][3]=data[1];
+    if(PLs[data[0]][3]<=0){
+      io.to(room).emit('deth', [data[0],PLstartPositions[data[0]%PLstartPositions.length]]);
+      PLs[ID][5]++;
+      io.to(room).emit('downscore', [ID,PLs[ID][5]]);
+    }
+    else  io.to(room).emit('downHP', data);
+  });
+
+  socket.on('upsit', function(status){
+    PLs[ID][6]=status[0];
+    io.to(room).emit('dowsit', [ID,status[0],status[1]]);
   });
 });
