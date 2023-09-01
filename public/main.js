@@ -6,9 +6,6 @@ let printHP = document.getElementById('HP');
 let printAmmunition = document.getElementById('ammunition');
 
 function init() {
-const shot_sound = new Audio('shot_file/submachinegun.mp3');
-const reload_sound = new Audio('shot_file/pompaction.mp3');
-const noshot_sound = new Audio('shot_file/pompaction_none.mp3');
 const renderer = new THREE.WebGLRenderer({
   canvas: document.querySelector('#myCanvas')});
 renderer.setSize(width, height);
@@ -35,28 +32,59 @@ class PL_ins{
   constructor(ID,type,HP,startposition,score){
     this.ID=ID;
     this.type=type;
+    this.statuses=0;  // リロード|セミオート|run|しゃがみ|モデルロード|ロード直後のbef_start
+    switch(this.type){
+      case 0:  // デザートイーグル
+        this.rensha=1;
+        this.Maxammu=7;
+        this.damage=3;
+        this.bul_speed=460;
+        this.statuses|=0b10000;
+      break;
+      case 1:  // fal
+        this.rensha=0.091;
+        this.Maxammu=20;
+        this.damage=0.6;
+        this.bul_speed=823;
+      break;
+      case 2:  // G3
+        this.rensha=0.1;
+        this.Maxammu=30;
+        this.damage=0.5;
+        this.bul_speed=790;
+      break;
+      default:
+        this.rensha=0.1;
+        this.Maxammu=100;
+        this.damage=1;
+        this.bul_speed=823;
+      break;
+    }
+    this.shot_sound = new Audio('shot_file/submachinegun.mp3');
+    this.reload_sound = new Audio('shot_file/pompaction.mp3');
+    this.noshot_sound = new Audio('shot_file/pompaction_none.mp3');
     this.model_path=models_dic[String(type)];
     this.HP=HP;
     this.realposi=startposition;
     this.score=score;
-    this.rensha=0.1;  // typeごとに変更
     this.renshan=0;
     this.nowspeed=1;
     this.modelloadcompd=0;
     this.repopcount=2;
     this.shotcount=2;
-    this.Maxammu=100;  // typeごとに変更
     this.ammunition=0;
-    this.statuses=0;  // run|しゃがみ|モデルロード|ロード直後のbef_start
     this.model=null;
     this.mixer=null;
     if(type==-1) return -1;
-    loadergltf.load(this.model_path, this.loading.bind(this), this.loading_txt.bind(this), function ( error ) {console.error( error );} );
+    loadergltf.load(this.model_path, this.loading.bind(this), ()=>{}, function ( error ) {console.error( error );} );
   }
   loading=( gltf)=>{
     this.model = gltf.scene;
-    this.animations = gltf.animations;
-    if(this.animations && this.animations.length){ this.mixer = new THREE.AnimationMixer(this.model); }
+    this.animations = new Map([]);
+    if(gltf.animations.length>0){
+      gltf.animations.forEach(col => {  // アニメーションをnameインデックスに
+        this.animations.set(col.name,col);    });
+      this.mixer = new THREE.AnimationMixer(this.model);}
     scene.add(this.model);
     if (this.type==0 || this.type==2){
       this.model.scale.set(0.01,0.01,0.01);
@@ -64,23 +92,20 @@ class PL_ins{
       this.model.scale.set(0.85,0.85,0.85);
     }
     if(this.model){this.statuses|=0b10;}
+    console.log(this.animations.keys())
   }
-  loading_txt(xhr){this.modelloadcompd=0;}
   bef_start(){
     this.reload();  // モデル生成時のポーズバグ
     this.statuses|=0b1;  }
 
   reload(){
-    if(this.action){this.action.reset();}
-    if(!this.animations)return 1;
-    this.animation = this.animations[0];
-    this.action = this.mixer.clipAction(this.animation) ;
-    this.action.setLoop(THREE.LoopOnce);
-    this.action.clampWhenFinished = true;
-    this.action.play();
-    reload_sound.pause();
-    reload_sound.currentTime=0;
-    reload_sound.play();
+    this.anim_change("reload");
+    this.statuses|=0b100000;
+    if(this.shot_sound.readyState === 4){
+      this.reload_sound.pause();
+      this.reload_sound.currentTime=0;
+      this.reload_sound.play();
+    }
     this.ammunition=this.Maxammu;  }
 
   update(){
@@ -89,22 +114,34 @@ class PL_ins{
     if(this.repopcount>0)this.repopcount-=time_delta;
     if(this.shotcount>=0)this.shotcount-=time_delta;
     if(this.repopcount<0)this.repopcount=0;
+    var poseflag=true;
+    
     if(!(this.statuses&0b100)){
       if(this.statuses&0b1000)  this.nowspeed+=(2-this.nowspeed)*0.1;
       else this.nowspeed+=(0.8-this.nowspeed)*0.2;
+    }else{
+      this.nowspeed+=(0.3-this.nowspeed)*0.03;
+      this.anim_change("sit");
+      poseflag=false;
     }
-    else  this.nowspeed+=(0.3-this.nowspeed)*0.03;
     if(Math.ceil(this.repopcount**2/5+this.repopcount*5)%2) this.model.visible=false;
     else this.model.visible=true;
-    if(this.statuses&0b1 && this.repopcount>2){this.statuses^=0b1; socket.emit('upHP',[this.ID, 10]);}
-    if(((this.model.position.x-this.realposi[0])**2+ (this.model.position.y-this.realposi[1])**2+ (this.model.position.z-this.realposi[2])**2)>0.00002){
+    var movedist=((this.model.position.x-this.realposi[0])**2+ (this.model.position.y-this.realposi[1])**2+ (this.model.position.z-this.realposi[2])**2);
+    if(movedist>0.00002){
       this.model.position.x+=(this.realposi[0]-this.model.position.x)*0.3;
       this.model.position.y+=(this.realposi[1]-this.model.position.y)*0.3;
       this.model.position.z+=(this.realposi[2]-this.model.position.z)*0.3;
     }
-    if(this.ID==myID)  this.model.rotation.y = this.realposi[3];
-    else  this.model.rotation.y=this.realposi[3];
-    if(this.mixer)this.mixer.update(time_delta);  }
+    if(movedist>0.1){
+      this.anim_change("walk");
+      poseflag=false;
+    }
+    this.model.rotation.y = this.realposi[3];
+
+    if(this.animation && this.animation.name=="reload" && this.action._loopCount<1) poseflag=false;
+    if(poseflag) this.anim_change("pose");
+    if(this.mixer)this.mixer.update(time_delta);
+  }
   
   shot(){
     if(gamemode<2) return -1;
@@ -113,13 +150,17 @@ class PL_ins{
         socket.emit('shot', cam_gyokaku);
         this.shotcount=this.rensha;
         this.ammunition--;
-        shot_sound.pause();
-        shot_sound.currentTime=0;
-        shot_sound.play();
+        if(this.shot_sound.readyState === 4){
+          this.shot_sound.pause();
+          this.shot_sound.currentTime=0;
+          this.shot_sound.play();
+        }
       }else{
-        noshot_sound.pause();
-        noshot_sound.currentTime=0;
-        noshot_sound.play();
+        if(this.noshot_sound.readyState === 4){
+          this.noshot_sound.pause();
+          this.noshot_sound.currentTime=0;
+          this.noshot_sound.play();
+        }
         this.shotcount=this.rensha;
       }
     }
@@ -128,6 +169,8 @@ class PL_ins{
   deth(posi){
     this.repopcount=3;
     this.shotcount=2;
+    this.statuses^=0b1;
+    socket.emit('upHP',[this.ID, 10]);
     this.realposi=posi;  }
   
   sitstand(to,mode){
@@ -142,6 +185,18 @@ class PL_ins{
     if(mode && !(this.statuses&0b100))  this.statuses|=0b1000;
     else  this.statuses&=(~0b1000);
   }
+  anim_change(mode){
+    console.log(mode)
+    if((!(this.animation) || this.animation.name!=mode) && this.animations.has(mode)){
+      this.mixer.stopAllAction();
+      if(this.action) this.action.reset();
+      this.animation = this.animations.get(mode);
+      this.action = this.mixer.clipAction(this.animation) ;
+      this.action.setLoop(THREE.LoopRepeat);
+      this.action.clampWhenFinished = true;
+      this.action.play();
+    }else if(mode=="shot" && this.animations.has("KeptYouWaitingHuh?"))this.anim_change("KeptYouWaitingHuh?");
+  }
 }
 
 let PL=[];
@@ -154,12 +209,16 @@ class bullet_ins{
     this.vec=PL[this.PLID].realposi[3];
     this.bul_gyokaku=bul_gyokaku;
     this.bullet.position.x=PL[this.PLID].realposi[0]+Math.cos(this.bul_gyokaku)*Math.sin(this.vec)*-0.5;
-    this.bullet.position.y=PL[this.PLID].realposi[1]+1.65+Math.sin(this.bul_gyokaku) *-0.5;
+    if(PL[this.PLID].statuses&0b100)  this.bullet.position.y=PL[this.PLID].realposi[1]+1+Math.sin(cam_gyokaku) *-0.5;
+    else  this.bullet.position.y=PL[this.PLID].realposi[1]+1.67+Math.sin(cam_gyokaku) *-0.5;
+
     this.bullet.position.z=PL[this.PLID].realposi[2]+Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*-0.5;
     this.bullet.rotation.y=this.vec;
     scene.add( this.bullet );
-    this.speed=20;
+
+    this.speed=PL[this.PLID].bul_speed/2;
     this.counter=200;
+    this.damage=PL[this.PLID].damage;
   }
   move(){
     for(var i=0;i<this.speed*time_delta;i+=0.01){  // バレットの当たり判定
@@ -173,7 +232,7 @@ class bullet_ins{
         if(dist<0.15){
           console.log(col.ID);
           this.counter=-1;
-          if(this.PLID==myID)socket.emit("upHP",[col.ID,col.HP-1]);
+          if(this.PLID==myID)socket.emit("upHP",[col.ID,col.HP-this.damage]);
           scene.remove(this.bullet);
           return -1;  }
     }  });  }
@@ -189,11 +248,6 @@ let bullet_obj=[];
 
 
 
-// HPバー
-const HPbar = new THREE.Mesh(new THREE.PlaneGeometry( 0.3,0.02 ),  new THREE.MeshStandardMaterial({color: 0x00ff00}) );
-scene.add( HPbar );
-
-
 function camset(mode,ID){
   switch(mode){
     case 0:
@@ -201,17 +255,11 @@ function camset(mode,ID){
       if(cam_gyokaku-mouseY*0.05<0.4 &&cam_gyokaku-mouseY*0.05>-0.2){cam_gyokaku-=mouseY*0.05;}
       camera.position.x=PL[ID].model.position.x+Math.cos(cam_gyokaku)*Math.sin(PL[ID].realposi[3]) *-0.6;
       if(PL[ID].statuses&0b100)  camera.position.y=PL[ID].model.position.y+1+Math.sin(cam_gyokaku) *-0.6;
-      else  camera.position.y=PL[ID].model.position.y+1.65+Math.sin(cam_gyokaku) *-0.6;
+      else  camera.position.y=PL[ID].model.position.y+1.7+Math.sin(cam_gyokaku) *-0.6;
       camera.position.z=PL[ID].model.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[ID].realposi[3]) *-0.6;
 
       if(PL[ID].statuses&0b100)  camera.lookAt(new THREE.Vector3(PL[ID].model.position.x, PL[ID].model.position.y+0.95, PL[ID].model.position.z));
       else camera.lookAt(new THREE.Vector3(PL[ID].model.position.x, PL[ID].model.position.y+1.65, PL[ID].model.position.z));
-
-      HPbar.position.x=camera.position.x+Math.cos(cam_gyokaku)*Math.sin(PL[ID].realposi[3])*1.2;
-      HPbar.position.y=camera.position.y+Math.sin(cam_gyokaku) *1.2+0.2;
-      HPbar.position.z=camera.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[ID].realposi[3])*1.2;
-      HPbar.rotation.y=PL[ID].realposi[3]+Math.PI;
-      HPbar.scale.x=PL[ID].HP/10;
 
       printHP.textContent=PL[ID].HP;
       printAmmunition.textContent=PL[ID].ammunition;
@@ -224,16 +272,15 @@ function camset(mode,ID){
 let maploadcompd=0;
 let model_r = null;
 loadergltf.load( './shot_file/de_dust2_-_cs_map-rep.glb', function ( gltf ) {
-model_r = gltf.scene;
-scene.add( model_r );
-model_r.scale.set(2,2,2);
-model_r.position.set(0,0,0);
-console.log('map : 成功' );
+  model_r = gltf.scene;
+  scene.add( model_r );
+  model_r.scale.set(2,2,2);
+  model_r.position.set(0,0,0);
+  maploadcompd=1
 }, function ( xhr ) {
-      // console.log( "map : "+( xhr.loaded / xhr.total * 100 ) + '% 読込済' );
-      maploadcompd=xhr.loaded/xhr.total;
+  maploadcompd=xhr.loaded/xhr.total;
 }, function ( error ) {
-console.error( error );
+  console.error( error );
 } );
 
 const light = new THREE.HemisphereLight(0x888888, 0x505000, 1.0);
@@ -272,6 +319,7 @@ document.body.addEventListener('keyup',(event) => { // キーを放したか
 document.body.addEventListener('mousedown',(event) => {
   mousedown=true;  });
   document.body.addEventListener('mouseup',(event) => {
+    if(gamemode==2 && PL[myID].statuses&0b10000)  PL[myID].shotcount=-1;
     mousedown=false;  });
 window.addEventListener('resize',(event) => {
     width = window.innerWidth;height = window.innerHeight;
@@ -345,12 +393,3 @@ switch(gamemode){
   requestAnimationFrame(tick);
 }
 }
-
-//"The Bathroom (Free)" (https://skfb.ly/6ZYYo) by Evan is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
-//"Abandoned Warehouse - Interior Scene" (https://skfb.ly/QQuJ) by Aurélien Martel is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
-// "de_dust2 - CS map" (https://skfb.ly/6ACOH) by vrchris is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
-// "LOWPOLY | FPS | TDM | GAME | MAP" (https://skfb.ly/oGypy) by Space_One is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
-// "Desert Eagle Reload Animation" (https://skfb.ly/6SNAK) by Stavich is licensed under Creative Commons Attribution-NonCommercial (http://creativecommons.org/licenses/by-nc/4.0/).
-// "G3 Reload Animation" (https://skfb.ly/6SSFz) by Stavich is licensed under Creative Commons Attribution-NonCommercial (http://creativecommons.org/licenses/by-nc/4.0/).
-// "FN FAL Reload Animation" (https://skfb.ly/6VUVA) by Stavich is licensed under CC Attribution-NonCommercial-NoDerivs (http://creativecommons.org/licenses/by-nc-nd/4.0/).
-// 効果音：効果音ラボ
