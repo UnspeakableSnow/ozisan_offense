@@ -179,14 +179,12 @@ class PL_ins{
       this.statuses&=(~0b1000);  // しゃがんだら強制ダッシュ解除
     }
     else  this.statuses&=(~0b100);
-    // if(mode)  anime  ポーズ
   }
   run(mode){
     if(mode && !(this.statuses&0b100))  this.statuses|=0b1000;
     else  this.statuses&=(~0b1000);
   }
   anim_change(mode){
-    console.log(mode)
     if((!(this.animation) || this.animation.name!=mode) && this.animations.has(mode)){
       this.mixer.stopAllAction();
       if(this.action) this.action.reset();
@@ -195,7 +193,15 @@ class PL_ins{
       this.action.setLoop(THREE.LoopRepeat);
       this.action.clampWhenFinished = true;
       this.action.play();
-    }else if(mode=="shot" && this.animations.has("KeptYouWaitingHuh?"))this.anim_change("KeptYouWaitingHuh?");
+    }else if((!(this.animation) || this.animation.name!=mode) && mode=="reload" && this.animations.has("KeptYouWaitingHuh?")){  // アニメーションを作ってないfal用
+      this.mixer.stopAllAction();
+      if(this.action) this.action.reset();
+      this.animation = this.animations.get("KeptYouWaitingHuh?");
+      this.action = this.mixer.clipAction(this.animation) ;
+      this.action.setLoop(THREE.LoopOnce);
+      this.action.clampWhenFinished = true;
+      this.action.play();
+    }
   }
 }
 
@@ -210,8 +216,7 @@ class bullet_ins{
     this.bul_gyokaku=bul_gyokaku;
     this.bullet.position.x=PL[this.PLID].realposi[0]+Math.cos(this.bul_gyokaku)*Math.sin(this.vec)*-0.5;
     if(PL[this.PLID].statuses&0b100)  this.bullet.position.y=PL[this.PLID].realposi[1]+1+Math.sin(cam_gyokaku) *-0.5;
-    else  this.bullet.position.y=PL[this.PLID].realposi[1]+1.67+Math.sin(cam_gyokaku) *-0.5;
-
+    else  this.bullet.position.y=PL[this.PLID].realposi[1]+1.7+Math.sin(cam_gyokaku) *-0.5;
     this.bullet.position.z=PL[this.PLID].realposi[2]+Math.cos(this.bul_gyokaku)*Math.cos(this.vec)*-0.5;
     this.bullet.rotation.y=this.vec;
     scene.add( this.bullet );
@@ -259,7 +264,7 @@ function camset(mode,ID){
       camera.position.z=PL[ID].model.position.z+Math.cos(cam_gyokaku)*Math.cos(PL[ID].realposi[3]) *-0.6;
 
       if(PL[ID].statuses&0b100)  camera.lookAt(new THREE.Vector3(PL[ID].model.position.x, PL[ID].model.position.y+0.95, PL[ID].model.position.z));
-      else camera.lookAt(new THREE.Vector3(PL[ID].model.position.x, PL[ID].model.position.y+1.65, PL[ID].model.position.z));
+      else camera.lookAt(new THREE.Vector3(PL[ID].model.position.x, PL[ID].model.position.y+1.7, PL[ID].model.position.z));
 
       printHP.textContent=PL[ID].HP;
       printAmmunition.textContent=PL[ID].ammunition;
@@ -343,7 +348,7 @@ socket.on('append', (loc)=>{
 socket.on('creBul', (data)=>{
   if(gamemode==2)bullet_obj.push(new bullet_ins(data[0],data[1]));
 });
-socket.on('downdata', function(loc){if(PL[loc[0]].realposi)PL[loc[0]].realposi=loc[1];});
+socket.on('downdata', function(loc){if(PL[loc[0]])PL[loc[0]].realposi=loc[1];});
 socket.on('downHP', function(loc){PL[loc[0]].HP=loc[1];});
 socket.on('downscore', function(loc){PL[loc[0]].score=loc[1]; console.log(loc[0],"score",PL[loc[0]].score);});
 socket.on('dowsit', function(loc){PL[loc[0]].sitstand(loc[1],loc[2])});
