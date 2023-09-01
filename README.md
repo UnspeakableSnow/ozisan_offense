@@ -18,6 +18,13 @@ docker run -d -p 3000:8080 nwg
   `localhost:3000`
 3. ゲームする。(*ﾉ´∀`)ﾉ
 
+又は…
+
+```sh
+npm install
+node server.js
+```
+
 "de_dust2 - CS map" (<https://skfb.ly/6ACOH>) by vrchris is licensed under Creative Commons Attribution (<http://creativecommons.org/licenses/by/4.0/>).  
 "Desert Eagle Reload Animation" (<https://skfb.ly/6SNAK>) by Stavich is licensed under Creative Commons Attribution-NonCommercial (<http://creativecommons.org/licenses/by-nc/4.0/>).  
 "G3 Reload Animation" (<https://skfb.ly/6SSFz>) by Stavich is licensed under Creative Commons Attribution-NonCommercial (<http://creativecommons.org/licenses/by-nc/4.0/>).  
