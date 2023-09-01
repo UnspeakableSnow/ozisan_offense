@@ -18,9 +18,9 @@ docker run -d -p 3000:8080 nwg
   `localhost:3000`
 3. ゲームする。(*ﾉ´∀`)ﾉ
 
-"de_dust2 - CS map" (<https://skfb.ly/6ACOH>) by vrchris is licensed under Creative Commons Attribution (<http://creativecommons.org/licenses/by/4.0/>).
-"Desert Eagle Reload Animation" (<https://skfb.ly/6SNAK>) by Stavich is licensed under Creative Commons Attribution-NonCommercial (<http://creativecommons.org/licenses/by-nc/4.0/>).
-"G3 Reload Animation" (<https://skfb.ly/6SSFz>) by Stavich is licensed under Creative Commons Attribution-NonCommercial (<http://creativecommons.org/licenses/by-nc/4.0/>).
-"FN FAL Reload Animation" (<https://skfb.ly/6VUVA>) by Stavich is licensed under CC Attribution-NonCommercial-NoDerivs (<http://creativecommons.org/licenses/by-nc-nd/4.0/>).
-"Polygonal Zombies with Animations Free Pack" (<https://skfb.ly/o7SYD>) by Denys Almaral is licensed under Creative Commons Attribution (<http://creativecommons.org/licenses/by/4.0/>).
+"de_dust2 - CS map" (<https://skfb.ly/6ACOH>) by vrchris is licensed under Creative Commons Attribution (<http://creativecommons.org/licenses/by/4.0/>).  
+"Desert Eagle Reload Animation" (<https://skfb.ly/6SNAK>) by Stavich is licensed under Creative Commons Attribution-NonCommercial (<http://creativecommons.org/licenses/by-nc/4.0/>).  
+"G3 Reload Animation" (<https://skfb.ly/6SSFz>) by Stavich is licensed under Creative Commons Attribution-NonCommercial (<http://creativecommons.org/licenses/by-nc/4.0/>).  
+"FN FAL Reload Animation" (<https://skfb.ly/6VUVA>) by Stavich is licensed under CC Attribution-NonCommercial-NoDerivs (<http://creativecommons.org/licenses/by-nc-nd/4.0/>).  
+"Polygonal Zombies with Animations Free Pack" (<https://skfb.ly/o7SYD>) by Denys Almaral is licensed under Creative Commons Attribution (<http://creativecommons.org/licenses/by/4.0/>). (not use)  
 効果音：効果音ラボ
