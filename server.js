@@ -20,7 +20,7 @@ server.listen(port, ()=>console.log(`Listening on port`, port));
 
 ipToID= new Map([]);
 PLs=[];
-const PLstartPositions=[[10,0,0,0],[7,0,0,0],[10,0,7,0],[7,0,-7,0],[7,0,14,0],[7,0,-14,0],[-7,0,14,0],[-7,0,-14,0]];
+const PLstartPositions=[[25,0,0,0],[12,0,0,0],[25,0,7,0],[12,0,-7,0],[12,0,14,0],[12,0,-14,0],[8,0,14,0],[8,0,-14,0]];
 
 ipToID.set("0",PLs.length);
 var startposi=PLstartPositions[PLs.length%PLstartPositions.length];

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 window.addEventListener('DOMContentLoaded', init);
 let width = window.innerWidth;let height = window.innerHeight;
+let printscore = document.getElementById('score');
 let printHP = document.getElementById('HP');
 let printAmmunition = document.getElementById('ammunition');
 
@@ -266,6 +267,7 @@ function camset(mode,ID){
       if(PL[ID].statuses&0b100)  camera.lookAt(new THREE.Vector3(PL[ID].model.position.x, PL[ID].model.position.y+0.95, PL[ID].model.position.z));
       else camera.lookAt(new THREE.Vector3(PL[ID].model.position.x, PL[ID].model.position.y+1.7, PL[ID].model.position.z));
 
+      printscore.textContent=PL[ID].score;
       printHP.textContent=PL[ID].HP;
       printAmmunition.textContent=PL[ID].ammunition;
       break;
@@ -279,7 +281,7 @@ let model_r = null;
 loadergltf.load( './shot_file/de_dust2_-_cs_map-rep.glb', function ( gltf ) {
   model_r = gltf.scene;
   scene.add( model_r );
-  model_r.scale.set(2,2,2);
+  model_r.scale.set(3.5,3.5,3.5);
   model_r.position.set(0,0,0);
   maploadcompd=1
 }, function ( xhr ) {
@@ -361,7 +363,7 @@ switch(gamemode){
   case 0:
     break;
   case 1:
-    if(PL.length==0){setupPL.forEach(col=> {PL.push(new PL_ins(col[1],col[2],col[3],col[4]));});}
+    if(PL.length==0){setupPL.forEach(col=> {PL.push(new PL_ins(col[1],col[2],col[3],col[4],col[5]));});}
     var totalcompd = PL.reduce(function(sum, element){return sum + element.modelloadcompd;}, 0);
     var compper=(maploadcompd+totalcompd)/(1+PL.length);
     console.log("load compd:",compper);
