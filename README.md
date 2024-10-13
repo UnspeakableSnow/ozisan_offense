@@ -1,30 +1,34 @@
 # ブラウザFPS「おじさんオフェンス」
 
 2023.07.01-02 サポーターズ主催ハッカソン 制作物
+以後随時開発
 
 ![ロゴ](ozisanoffense_readmelogo.png)
 
-## 遊び方
+## 現在移行作業中
 
-0. `docker node npm`を使えるようにする。
-1. Dockerを起動する。
+旧
 
-```powershell
-docker build -t nwg .
-docker run -d -p 3000:8080 nwg
-```
+- docker
+  - nodejs
+    - server.js // バックエンド
+    - HTML/CSS/JS // フロントエンド
+    - Socket.io
 
-2. Dockerを起動した鯖のlocalhostなりローカルIPの3000ポートにアクセスする。  
-  `localhost:3000`
-3. 武器を番号で指定(１～３)してゲームする。
-4. 同じローカルIPに別のブラウザからもアクセスしてマルチで遊ぶ。
+新（計画）
 
-又は…
+- GithubPages // フロントエンド
+  - vuejs / ts
+    - socket.io-client
+- 無料サーバー // バックエンド
+  - node.js
+    - socket.io
 
-```sh
-npm install
-node server.js
-```
+現在このリポジトリは移行作業中により動作しません。ブランチより`old_system(node+js)`で旧システムを閲覧、使用することができます。
+
+---
+
+## 素材
 
 "de_dust2 - CS map" (<https://skfb.ly/6ACOH>) by vrchris is licensed under Creative Commons Attribution (<http://creativecommons.org/licenses/by/4.0/>).  
 "Desert Eagle Reload Animation" (<https://skfb.ly/6SNAK>) by Stavich is licensed under Creative Commons Attribution-NonCommercial (<http://creativecommons.org/licenses/by-nc/4.0/>).  

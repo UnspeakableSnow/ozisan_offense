@@ -1,0 +1,46 @@
+<!-- フレーム全体管理 -->
+<script setup lang="ts">
+import { ref } from "vue";
+import login_manager from "./components/login_manager.vue";
+import room_access from "./components/room_access.vue";
+import graphic_view from "./components/graphic_view.vue";
+import type { PS } from "./types";
+import { io } from "socket.io-client";
+const socket = io("http://localhost:8081", {
+  withCredentials: true,
+});
+
+const myPS = ref<PS>({
+  id: "",
+  R: "",
+  connection: false,
+});
+
+socket.on("reconnection", (id: string, R: string) => {
+  console.log(id, R);
+  myPS.value.id = id;
+  myPS.value.R = R;
+  myPS.value.connection = true;
+});
+</script>
+
+<style scoped>
+body {
+  border: double 10px #f0f;
+}
+</style>
+
+<template>
+  {{ myPS }}
+  <login_manager
+    v-if="!myPS.connection"
+    :socket="socket"
+    @vomit_idAR="(id: string, R: string) => { myPS.id = id; myPS.R = R; myPS.connection = true; }"
+  />
+  <room_access
+    v-else-if="myPS.R == '&lobby'"
+    :socket="socket"
+    @vomit_R="(R: string) => { myPS.R = R; }"
+  />
+  <!-- <graphic_view v-else-if="myPS.R[0] != '&'" /> -->
+</template>

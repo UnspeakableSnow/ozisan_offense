@@ -1,0 +1,19 @@
+{
+  "type": "module",
+  "dependencies": {
+    "socket.io": "^4.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "typescript": "^5.6.3"
+  },
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "compilerOptions": {
+    "outDir": "./dist"
+  },
+  "include": ["src"]
+}
