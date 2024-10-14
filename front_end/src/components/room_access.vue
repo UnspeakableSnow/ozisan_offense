@@ -2,22 +2,24 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, ref } from "vue";
 import { Socket } from "socket.io-client";
-import { RT, PT } from "@/types";
+import { RT } from "@/types";
 
 const props = defineProps<{
   socket: Socket;
 }>();
 const emits = defineEmits<{
-  (e: "vomit_R", R: string): void;
+  (e: "vomit_RT", RT: RT): void;
 }>();
 
 const Rlist = ref<RT[]>([]);
 props.socket.emit("getRlist");
 props.socket.on("vomitRlist", (vomited_Rlist: RT[]) => {
+  console.log(vomited_Rlist);
   Rlist.value = vomited_Rlist;
 });
-props.socket.on("Rsuccess", (PsT: PT[]) => {
-  // emits("vomit_R", );
+props.socket.on("Rsuccess", (RT: RT) => {
+  emits("vomit_RT", RT);
+  console.log(RT);
 });
 </script>
 
@@ -57,9 +59,6 @@ button {
 </style>
 
 <template>
-  <div class="frame">
-    {{ Rlist }}
-  </div>
   <div class="frame">
     <button
       v-for="(R, i) in Rlist"

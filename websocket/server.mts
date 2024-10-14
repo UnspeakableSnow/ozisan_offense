@@ -4,8 +4,8 @@ const server: http.Server = http.createServer();
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:8080",
-    credentials: true
-  }
+    credentials: true,
+  },
 });
 const port = 8081;
 server.listen(port, () => console.log("app listening on port " + port));
@@ -39,24 +39,26 @@ function get_start_position(ind: number) {
 
 Rlist.push({
   Rid: "0",
-  PsT: [{
-    id: "npc_0",
-    side: 0,
-    weapon_ids: [0],
-    health: 0,
-    position: {
-      x: 0,
-      y: 0,
-      z: 0,
-      y_rotation: 0,
-      gyokaku: 0
+  PsT: [
+    {
+      id: "npc_0",
+      side: 0,
+      weapon_ids: [0],
+      health: 0,
+      position: {
+        x: 0,
+        y: 0,
+        z: 0,
+        y_rotation: 0,
+        gyokaku: 0,
+      },
+      spawn_point: get_start_position(0),
+      kill: 0,
+      death: 0,
+      alive: false,
+      siting: false,
     },
-    spawn_point: get_start_position(0),
-    kill: 0,
-    death: 0,
-    alive: false,
-    siting: false
-  }],
+  ],
   map: "origin",
   mode: "deathmatch",
 });
@@ -129,70 +131,80 @@ io.on(
     socket.on("selectR", (Rid: string) => {
       let PSind = PsS.findIndex((d) => d.ip == ip);
       if (PSind != -1) {
-        let slctdRind = Rlist.findIndex((d) => d.Rid == Rid);
-        if (slctdRind != -1) {
-          if (Rlist[slctdRind].PsT.length < 20) {
-            if (Rlist[slctdRind].mode == "deathmatch") {
-              Rlist[slctdRind].PsT.push({
-                id: PsS[PSind].id,
-                side: Rlist[slctdRind].PsT.length,
-                weapon_ids: [-1],
-                health: 0,
-                position: {
-                  x: 0,
-                  y: 0,
-                  z: 0,
-
-                  y_rotation: 0,
-                  gyokaku: 0,
-                },
-                spawn_point: get_start_position(Rlist[slctdRind].PsT.length),
-                kill: 0,
-                death: 0,
-                alive: false,
-                siting: false,
-              });
-              console.log("Rsuccess", ip);
-              io.to(socket.id).emit("Rsuccess", Rlist[slctdRind].PsT);
+        if (
+          PsS[PSind].R.charAt(0) == "&" ||
+          Rlist.findIndex((R) => R.Rid == PsS[PSind].R) == -1
+        ) {
+          let slctdRind = Rlist.findIndex((d) => d.Rid == Rid);
+          if (slctdRind != -1) {
+            if (Rlist[slctdRind].PsT.length < 20) {
+              if (Rlist[slctdRind].mode == "deathmatch") {
+                Rlist[slctdRind].PsT.push({
+                  id: PsS[PSind].id,
+                  side: Rlist[slctdRind].PsT.length,
+                  weapon_ids: [-1],
+                  health: 0,
+                  position: {
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                    y_rotation: 0,
+                    gyokaku: 0,
+                  },
+                  spawn_point: get_start_position(Rlist[slctdRind].PsT.length),
+                  kill: 0,
+                  death: 0,
+                  alive: false,
+                  siting: false,
+                });
+                PsS[PSind].R = Rid;
+                console.log("Rsuccess", ip);
+                io.to(socket.id).emit("Rsuccess", Rlist[slctdRind]);
+              } else {
+                Rlist[slctdRind].PsT.push({
+                  id: PsS[PSind].id,
+                  side:
+                    Rlist[slctdRind].PsT.filter((d) => d.side == 0).length <=
+                    Rlist[slctdRind].PsT.length / 2
+                      ? 0
+                      : 1,
+                  weapon_ids: [-1],
+                  health: 0,
+                  position: {
+                    x: 0,
+                    y: 0,
+                    z: 0,
+                    y_rotation: 0,
+                    gyokaku: 0,
+                  },
+                  spawn_point: get_start_position(Rlist[slctdRind].PsT.length),
+                  kill: 0,
+                  death: 0,
+                  alive: false,
+                  siting: false,
+                });
+                PsS[PSind].R = Rid;
+                console.log("Rsuccess", ip);
+                io.to(socket.id).emit("Rsuccess", Rlist[slctdRind]);
+              }
             } else {
-              Rlist[slctdRind].PsT.push({
-                id: PsS[PSind].id,
-                side:
-                  Rlist[slctdRind].PsT.filter((d) => d.side == 0).length <=
-                  Rlist[slctdRind].PsT.length / 2
-                    ? 0
-                    : 1,
-                weapon_ids: [-1],
-                health: 0,
-                position: {
-                  x: 0,
-                  y: 0,
-                  z: 0,
-
-                  y_rotation: 0,
-                  gyokaku: 0,
-                },
-                spawn_point: get_start_position(Rlist[slctdRind].PsT.length),
-                kill: 0,
-                death: 0,
-                alive: false,
-                siting: false,
-              });
-              console.log("Rsuccess", ip);
-              io.to(socket.id).emit("Rsuccess", Rlist[slctdRind].PsT);
+              console.log("Rfalse", ip);
+              io.to(socket.id).emit(
+                "Rfalse",
+                "おっと！ルームの人数がいっぱいのようです。"
+              );
             }
           } else {
             console.log("Rfalse", ip);
             io.to(socket.id).emit(
               "Rfalse",
-              "おっと！ルームの人数がいっぱいのようです。"
-            );}
-        } else{
-          console.log("Rfalse", ip);
-          io.to(socket.id).emit(
-            "Rfalse",
-            "おっと！ルームが存在しないようです。"
-          );}
+              "おっと！ルームが存在しないようです。"
+            );
+          }
+        } else {
+          io.to(socket.id).emit("Rsuccess", PsS[PSind]);
+          console.log("doubleRselect", ip);
+        }
       } else {
         console.log("login_false", ip);
         io.to(socket.id).emit("login_false", "ログインしてください。");
@@ -208,12 +220,13 @@ io.on(
             Rlist[slctdRind].PsT[RPsTind] = T;
             io.to(socket.id).emit("syncT", Rlist[slctdRind].PsT);
           } else console.error("slctdR.PsTとPsSに整合性の疑義");
-        } else{
+        } else {
           console.log("Rfalse", ip);
           io.to(socket.id).emit(
             "Rfalse",
             "おっと！あなたはこのルームに存在しないようです。"
-          );}
+          );
+        }
       } else io.to(socket.id).emit("login_false", "ログインしてください。");
     });
     socket.on("spawn", (T: PT) => {
