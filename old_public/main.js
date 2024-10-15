@@ -68,7 +68,7 @@ class PL_ins{
     this.HP=HP;
     this.realposi=startposition;
     this.score=score;
-    this.renshan=0;
+    this.renshan=0; // 元shotcount?
     this.nowspeed=1;
     this.modelloadcompd=0;
     this.repopcount=2;
@@ -251,7 +251,6 @@ class bullet_ins{
   }
 }
 let bullet_obj=[];
-
 
 
 function camset(mode,ID){

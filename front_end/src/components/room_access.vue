@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, ref } from "vue";
 import { Socket } from "socket.io-client";
-import { RT } from "@/types";
+import type { RT } from "@/@types/types";
 
 const props = defineProps<{
   socket: Socket;

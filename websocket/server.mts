@@ -22,43 +22,45 @@ let Rlist: RT[] = [];
 //所謂セッション PsT
 let PsS: PS[] = [];
 
-function get_start_position(ind: number) {
+function makePT(id: string, side: number, ind: number) {
   const start_positions: position[] = [
-    { x: 25, y: 0, z: 0, y_rotation: 0, gyokaku: 0 },
-    { x: 12, y: 0, z: 0, y_rotation: 0, gyokaku: 0 },
-    { x: 8, y: 0, z: 0, y_rotation: 0, gyokaku: 0 },
-    { x: 25, y: 0, z: 7, y_rotation: 0, gyokaku: 0 },
-    { x: 12, y: 0, z: 7, y_rotation: 0, gyokaku: 0 },
-    { x: 8, y: 0, z: 7, y_rotation: 0, gyokaku: 0 },
-    { x: 25, y: 0, z: 14, y_rotation: 0, gyokaku: 0 },
-    { x: 12, y: 0, z: 14, y_rotation: 0, gyokaku: 0 },
-    { x: 8, y: 0, z: 14, y_rotation: 0, gyokaku: 0 },
+    { x: 25, y: 0, z: 0, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
+    { x: 12, y: 0, z: 0, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
+    { x: 8, y: 0, z: 0, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
+    { x: 25, y: 0, z: 7, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
+    { x: 12, y: 0, z: 7, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
+    { x: 8, y: 0, z: 7, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
+    { x: 25, y: 0, z: 14, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
+    { x: 12, y: 0, z: 14, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
+    { x: 8, y: 0, z: 14, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
   ];
-  return start_positions[ind % start_positions.length];
+  const PTdata: PT = {
+    id: id,
+    side: side,
+    weapon_ids: { main: "desert_eagle" },
+    health: 0,
+    position: start_positions[ind % start_positions.length],
+    velocity: {
+      x: 0,
+      y: 0,
+      z: 0,
+      x_rotation: 0,
+      y_rotation: 0,
+      z_rotation: 0,
+    },
+    spawn_point: start_positions[ind % start_positions.length],
+    kill: 0,
+    death: -1,
+    alive: false,
+    siting: false,
+    running: false,
+  };
+  return PTdata;
 }
 
 Rlist.push({
   Rid: "0",
-  PsT: [
-    {
-      id: "npc_0",
-      side: 0,
-      weapon_ids: [0],
-      health: 0,
-      position: {
-        x: 0,
-        y: 0,
-        z: 0,
-        y_rotation: 0,
-        gyokaku: 0,
-      },
-      spawn_point: get_start_position(0),
-      kill: 0,
-      death: 0,
-      alive: false,
-      siting: false,
-    },
-  ],
+  PsT: [makePT("npc0", 0, 0)],
   map: "origin",
   mode: "deathmatch",
 });
@@ -86,21 +88,16 @@ io.on(
       }
     ) => void;
   }) {
-    let ip =
-      socket.handshake.address != "::ffff:127.0.0.1"
-        ? socket.handshake.address
-        : "::1";
+    let ip = socket.handshake.address != "::ffff:127.0.0.1" ? socket.handshake.address : "::1";
     console.log("detection", ip);
     let PSind = PsS.findIndex((d) => d.ip == ip);
     if (PSind != -1) {
-      if (
-        Rlist.findIndex(
-          (d) =>
-            d.Rid == PsS[PSind].R &&
-            d.PsT.findIndex((p) => p.id == PsS[PSind].id) != -1
-        ) != -1
-      ) {
+      const reconnectRind = Rlist.findIndex(
+        (d) => d.Rid == PsS[PSind].R && d.PsT.findIndex((p) => p.id == PsS[PSind].id) != -1
+      );
+      if (reconnectRind != -1) {
         socket.join(PsS[PSind].R);
+        io.to(socket.id).emit("reconnectionR", Rlist[reconnectRind]);
       } else PsS[PSind].R = "&lobby";
       console.log("reconnected", ip);
       io.to(socket.id).emit("reconnection", PsS[PSind].id, PsS[PSind].R);
@@ -131,75 +128,39 @@ io.on(
     socket.on("selectR", (Rid: string) => {
       let PSind = PsS.findIndex((d) => d.ip == ip);
       if (PSind != -1) {
-        if (
-          PsS[PSind].R.charAt(0) == "&" ||
-          Rlist.findIndex((R) => R.Rid == PsS[PSind].R) == -1
-        ) {
+        if (PsS[PSind].R.charAt(0) == "&" || Rlist.findIndex((R) => R.Rid == PsS[PSind].R) == -1) {
           let slctdRind = Rlist.findIndex((d) => d.Rid == Rid);
           if (slctdRind != -1) {
             if (Rlist[slctdRind].PsT.length < 20) {
               if (Rlist[slctdRind].mode == "deathmatch") {
-                Rlist[slctdRind].PsT.push({
-                  id: PsS[PSind].id,
-                  side: Rlist[slctdRind].PsT.length,
-                  weapon_ids: [-1],
-                  health: 0,
-                  position: {
-                    x: 0,
-                    y: 0,
-                    z: 0,
-                    y_rotation: 0,
-                    gyokaku: 0,
-                  },
-                  spawn_point: get_start_position(Rlist[slctdRind].PsT.length),
-                  kill: 0,
-                  death: 0,
-                  alive: false,
-                  siting: false,
-                });
+                Rlist[slctdRind].PsT.push(
+                  makePT(PsS[PSind].id, Rlist[slctdRind].PsT.length, Rlist[slctdRind].PsT.length)
+                );
                 PsS[PSind].R = Rid;
                 console.log("Rsuccess", ip);
                 io.to(socket.id).emit("Rsuccess", Rlist[slctdRind]);
               } else {
-                Rlist[slctdRind].PsT.push({
-                  id: PsS[PSind].id,
-                  side:
+                Rlist[slctdRind].PsT.push(
+                  makePT(
+                    PsS[PSind].id,
                     Rlist[slctdRind].PsT.filter((d) => d.side == 0).length <=
-                    Rlist[slctdRind].PsT.length / 2
+                      Rlist[slctdRind].PsT.length / 2
                       ? 0
                       : 1,
-                  weapon_ids: [-1],
-                  health: 0,
-                  position: {
-                    x: 0,
-                    y: 0,
-                    z: 0,
-                    y_rotation: 0,
-                    gyokaku: 0,
-                  },
-                  spawn_point: get_start_position(Rlist[slctdRind].PsT.length),
-                  kill: 0,
-                  death: 0,
-                  alive: false,
-                  siting: false,
-                });
+                    Rlist[slctdRind].PsT.length
+                  )
+                );
                 PsS[PSind].R = Rid;
                 console.log("Rsuccess", ip);
                 io.to(socket.id).emit("Rsuccess", Rlist[slctdRind]);
               }
             } else {
               console.log("Rfalse", ip);
-              io.to(socket.id).emit(
-                "Rfalse",
-                "おっと！ルームの人数がいっぱいのようです。"
-              );
+              io.to(socket.id).emit("Rfalse", "おっと！ルームの人数がいっぱいのようです。");
             }
           } else {
             console.log("Rfalse", ip);
-            io.to(socket.id).emit(
-              "Rfalse",
-              "おっと！ルームが存在しないようです。"
-            );
+            io.to(socket.id).emit("Rfalse", "おっと！ルームが存在しないようです。");
           }
         } else {
           io.to(socket.id).emit("Rsuccess", PsS[PSind]);
@@ -222,54 +183,38 @@ io.on(
           } else console.error("slctdR.PsTとPsSに整合性の疑義");
         } else {
           console.log("Rfalse", ip);
-          io.to(socket.id).emit(
-            "Rfalse",
-            "おっと！あなたはこのルームに存在しないようです。"
-          );
+          io.to(socket.id).emit("Rfalse", "おっと！あなたはこのルームに存在しないようです。");
         }
       } else io.to(socket.id).emit("login_false", "ログインしてください。");
     });
     socket.on("spawn", (T: PT) => {
       let PSind = PsS.findIndex((d) => d.ip == ip);
       if (PSind != -1) {
-        let slctdRind = Rlist.findIndex((d) => d.Rid == PsS[PSind].R);
-        if (slctdRind != -1) {
-          let RPsTind = Rlist[slctdRind].PsT.findIndex(
-            (d) => d.id == PsS[PSind].id
-          );
-          if (RPsTind > 0) {
-            Rlist[slctdRind].PsT[RPsTind] = T;
-            io.in(Rlist[slctdRind].Rid).emit(
-              "spawn",
-              Rlist[slctdRind].PsT[RPsTind]
-            );
-          } else console.error("slctdR.PsTとPsSに整合性の疑義");
-        } else
-          io.to(socket.id).emit(
-            "Rfalse",
-            "おっと！あなたはこのルームに存在しないようです。"
-          );
+        if (PsS[PSind].id == T.id) {
+          let slctdRind = Rlist.findIndex((d) => d.Rid == PsS[PSind].R);
+          if (slctdRind != -1) {
+            let RPsTind = Rlist[slctdRind].PsT.findIndex((d) => d.id == PsS[PSind].id);
+            if (RPsTind > 0) {
+              Rlist[slctdRind].PsT[RPsTind] = T;
+              io.in(Rlist[slctdRind].Rid).emit("spawn", Rlist[slctdRind].PsT[RPsTind]);
+            } else console.error("slctdR.PsTとPsSに整合性の疑義", Rlist[slctdRind].PsT, PsS);
+          } else io.to(socket.id).emit("Rfalse", "おっと！あなたはこのルームに存在しないようです。");
+        }
       } else io.to(socket.id).emit("login_false", "ログインしてください。");
     });
-    socket.on("fire", (arg: { T: PT; weapon_id: number }) => {
+    socket.on("fire", (arg: { T: PT; weapon_id: string }) => {
       let PSind = PsS.findIndex((d) => d.ip == ip);
       if (PSind != -1) {
         let slctdRind = Rlist.findIndex((d) => d.Rid == PsS[PSind].R);
         if (slctdRind != -1) {
-          let RPsTind = Rlist[slctdRind].PsT.findIndex(
-            (d) => d.id == PsS[PSind].id
-          );
+          let RPsTind = Rlist[slctdRind].PsT.findIndex((d) => d.id == PsS[PSind].id);
           if (RPsTind > 0) {
             io.to(socket.id).emit("fire", {
               T: arg.T,
               weapon_id: arg.weapon_id,
             });
           } else console.error("slctdR.PsTとPsSに整合性の疑義");
-        } else
-          io.to(socket.id).emit(
-            "Rfalse",
-            "おっと！あなたはこのルームに存在しないようです。"
-          );
+        } else io.to(socket.id).emit("Rfalse", "おっと！あなたはこのルームに存在しないようです。");
       } else io.to(socket.id).emit("login_false", "ログインしてください。");
     });
     socket.on("disconnect", () => {

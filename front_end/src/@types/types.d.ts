@@ -2,8 +2,9 @@ export type position = {
   x: number;
   y: number;
   z: number;
+  x_rotation: number;
   y_rotation: number;
-  gyokaku: number;
+  z_rotation: number;
 };
 export type PS = {
   id: string;
@@ -13,14 +14,16 @@ export type PS = {
 export type PT = {
   id: string;
   side: number;
-  weapon_ids: [number];
+  weapon_ids: { main: "desert_eagle" | "fn_fal" | "g3" };
   health: number;
   position: position;
+  velocity: position;
   spawn_point: position;
   kill: number;
   death: number;
   alive: boolean;
   siting: boolean;
+  running: boolean;
 };
 export type RT = {
   Rid: string;
