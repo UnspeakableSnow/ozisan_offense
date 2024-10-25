@@ -23,6 +23,13 @@ const in_nowRT = ref(props.in_nowRT);
 
 onMounted(async () => {
   console.log(in_nowRT);
+  let fovcos = 0;
+  let wasd_down = 0;
+  let mouse_down = false;
+  const clock = new THREE.Clock();
+  const move_scale = 85;
+  let PCs: PCins[] = [];
+  let bullets: bullet_ins[] = [];
 
   window.addEventListener("resize", () => {
     width = window.innerWidth;
@@ -32,6 +39,70 @@ onMounted(async () => {
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
   });
+  document.body.addEventListener("keydown", (event) => {
+    if (
+      PCs &&
+      PCs.every((PC) => {
+        PC.model;
+      })
+    )
+      return -1;
+    if (event.key == "w") {
+      wasd_down |= 0b1000;
+    }
+    if (event.key == "a") {
+      wasd_down |= 0b0100;
+    }
+    if (event.key == "s") {
+      wasd_down |= 0b0010;
+    }
+    if (event.key == "d") {
+      wasd_down |= 0b0001;
+    }
+    if (event.key == "r") {
+      if (PCs[myPCind]) PCs[myPCind].reload();
+    }
+    if (event.key == "z") {
+      if (PCs[myPCind]) PCs[myPCind].PT.sitting = !PCs[myPCind].PT.sitting;
+    }
+    if (event.shiftKey) {
+      if (PCs[myPCind]) PCs[myPCind].PT.running = !PCs[myPCind].PT.running;
+    }
+  });
+  document.body.addEventListener("keyup", (event) => {
+    if (event.key == "w") {
+      wasd_down &= 0b0111;
+    }
+    if (event.key == "a") {
+      wasd_down &= 0b1011;
+    }
+    if (event.key == "s") {
+      wasd_down &= 0b1101;
+    }
+    if (event.key == "d") {
+      wasd_down &= 0b1110;
+    }
+  });
+  document.body.addEventListener("mousedown", () => {
+    mouse_down = true;
+  });
+  document.body.addEventListener("mouseup", () => {
+    mouse_down = false;
+    if (PCs[myPCind]) PCs[myPCind].rensha_cool_time = 0;
+  });
+
+  props.socket.on("syncT", (RPsT: PT[]) => {
+    if (PCs)
+      RPsT.forEach((newPT) => {
+        const PCind = PCs.findIndex((PC) => PC.PT.id === newPT.id);
+        if (PCind != -1) PCs[PCind].PT = newPT;
+      });
+  });
+  props.socket.on("fire", (data: { T: PT; weapon_id: string }) => {
+    bullets.push(new bullet_ins(data.T));
+    console.log(bullets);
+  });
+
   // プレイヤーキャラクターインスタンス
   class PCins {
     PT: PT;
@@ -113,9 +184,9 @@ onMounted(async () => {
         this.PT.weapon_ids.main == "desert_eagle" ||
         this.PT.weapon_ids.main == "g3"
       ) {
-        this.model.scale.set(108, 108, 108);
+        this.model.scale.set(1.08, 1.08, 1.08);
       } else if (this.PT.weapon_ids.main == "fn_fal") {
-        this.model.scale.set(9180, 9180, 9180);
+        this.model.scale.set(91.8, 91.8, 91.8);
       }
       console.log(this.PT.id, this.animations.keys());
       if (props.id == this.PT.id) this.spawn();
@@ -141,7 +212,7 @@ onMounted(async () => {
       if (this.rensha_cool_time >= 0) this.rensha_cool_time -= time_delta;
       let poseflag = true;
 
-      if (this.PT.siting) {
+      if (this.PT.sitting) {
         this.anim_change("sit");
         poseflag = false;
         //   if (this.statuses & 0b1000) this.nowspeed += (2 - this.nowspeed) * 0.1;
@@ -158,27 +229,27 @@ onMounted(async () => {
         this.model.visible = false;
       else this.model.visible = true;
 
+      this.PT.position.x += this.PT.velocity.x * time_delta;
+      this.PT.position.y += this.PT.velocity.y * time_delta;
+      this.PT.position.z += this.PT.velocity.z * time_delta;
+      this.model.position.set(
+        this.PT.position.x,
+        this.PT.position.y,
+        this.PT.position.z
+      );
       if (
-        this.PT.velocity.x + this.PT.velocity.y + this.PT.velocity.z <
-        0.00002
+        this.PT.velocity.x ** 2 +
+          this.PT.velocity.y ** 2 +
+          this.PT.velocity.z ** 2 >
+        0.1
       ) {
-        this.PT.position.x += this.PT.velocity.x;
-        this.PT.position.y += this.PT.velocity.y;
-        this.PT.position.z += this.PT.velocity.z;
-        this.model.position.set(
-          this.PT.position.x,
-          this.PT.position.y,
-          this.PT.position.z
-        );
-      }
-      if (this.PT.velocity.x + this.PT.velocity.y + this.PT.velocity.z > 0.1) {
         this.anim_change("walk");
         poseflag = false;
       }
-      this.PT.position.x_rotation += this.PT.velocity.x_rotation;
-      this.PT.position.y_rotation += this.PT.velocity.y_rotation;
-      this.PT.position.z_rotation += this.PT.velocity.z_rotation;
-      this.model.position.set(
+      this.PT.position.x_rotation += this.PT.velocity.x_rotation * time_delta;
+      this.PT.position.y_rotation += this.PT.velocity.y_rotation * time_delta;
+      this.PT.position.z_rotation += this.PT.velocity.z_rotation * time_delta;
+      this.model.rotation.set(
         this.PT.position.x_rotation,
         this.PT.position.y_rotation,
         this.PT.position.z_rotation
@@ -228,7 +299,7 @@ onMounted(async () => {
       this.PT.health = 10;
       this.PT.death++;
       this.PT.position = this.PT.spawn_point;
-      this.PT.siting = false;
+      this.PT.sitting = false;
       this.PT.running = false;
       props.socket.emit("spawn", this.PT);
     }
@@ -253,11 +324,105 @@ onMounted(async () => {
           this.now_animation = this.animations.get(mode);
           if (!this.now_animation) return -1;
           this.action = this.mixer.clipAction(this.now_animation);
-          this.action.setLoop(THREE.LoopRepeat, -1);
+          this.action.setLoop(THREE.LoopRepeat, 999999);
         }
         this.action.clampWhenFinished = true;
         this.action.play();
       }
+    }
+  }
+  function kia_bullet(bullet_id: number) {
+    let target_bullet_ind = bullets.findIndex((b) => b.bullet_id === bullet_id);
+    if (target_bullet_ind !== -1) {
+      scene.remove(bullets[target_bullet_ind].bullet);
+      bullets.splice(target_bullet_ind, 1);
+    } else {
+      console.error("error kia bullet", bullets.length);
+    }
+  }
+  class bullet_ins {
+    bullet: THREE.Mesh<
+      THREE.BoxGeometry,
+      THREE.MeshBasicMaterial,
+      THREE.Object3DEventMap
+    >;
+    bullet_id: number;
+    Pid: string;
+    vec: THREE.Vector3 | undefined;
+    speed: number | undefined;
+    counter: number | undefined;
+    damage: number | undefined;
+    constructor(T: PT) {
+      this.bullet = new THREE.Mesh(
+        new THREE.BoxGeometry(3, 3, 6),
+        new THREE.MeshBasicMaterial({ color: 0xff0000 })
+      );
+      this.Pid = T.id;
+      this.bullet_id = Math.random();
+      const PT = T;
+      const PC = PCs.find((PC) => PC.PT.id === T.id);
+      if (!PC) {
+        kia_bullet(this.bullet_id);
+        return;
+      }
+      this.vec = new THREE.Vector3(
+        PT.position.x_rotation,
+        PT.position.y_rotation,
+        PT.position.z_rotation
+      );
+      this.bullet.position.set(
+        PT.position.x +
+          Math.cos(this.vec.x) *
+            Math.sin(this.vec.y) *
+            Math.sin(this.vec.z) *
+            -50,
+        PT.position.y +
+          170 +
+          Math.sin(this.vec.x) *
+            Math.cos(this.vec.y) *
+            Math.sin(this.vec.z) *
+            -50,
+        PT.position.z +
+          Math.sin(this.vec.x) *
+            Math.sin(this.vec.y) *
+            Math.cos(this.vec.z) *
+            -50
+      );
+      this.bullet.rotation.set(this.vec.x, this.vec.y, this.vec.z);
+      scene.add(this.bullet);
+
+      this.speed = PC.bul_speed * 50;
+      this.counter = 20000;
+      this.damage = PC.damage;
+    }
+    move(time_delta: number) {
+      if (!this.counter || !this.speed || !this.vec) return;
+      this.counter -= this.speed * time_delta;
+      if (this.counter < 0) {
+        kia_bullet(this.bullet_id);
+        return;
+      }
+      this.bullet.position.x +=
+        Math.sin(this.vec.x) *
+        Math.cos(this.vec.y) *
+        Math.cos(this.vec.z) *
+        this.speed *
+        time_delta;
+      this.bullet.position.y +=
+        Math.cos(this.vec.x) *
+        Math.sin(this.vec.y) *
+        Math.cos(this.vec.z) *
+        this.speed *
+        time_delta;
+      this.bullet.position.z +=
+        Math.cos(this.vec.x) *
+        Math.cos(this.vec.y) *
+        Math.cos(this.vec.z) *
+        this.speed *
+        time_delta;
+      console.log(
+        Math.cos(this.vec.x) * Math.cos(this.vec.y) * Math.cos(this.vec.z)
+      );
     }
   }
   // function camset(ID: number) {
@@ -312,7 +477,7 @@ onMounted(async () => {
   const loadergltf = new GLTFLoader();
 
   const camera = new THREE.PerspectiveCamera(45, width / height, 1, 2000);
-  camera.position.set(0, 0, +500);
+  camera.position.set(0, 0, 500);
 
   const light = new THREE.HemisphereLight(0x888888, 0x505000, 1.0);
   scene.add(light);
@@ -332,22 +497,63 @@ onMounted(async () => {
     );
     scene.add(boxs[boxs.length - 1]);
   }
-  let fovcos = 0;
 
-  let PCs = [];
   in_nowRT.value.PsT.forEach((PT) => {
     PCs.push(new PCins(PT));
   });
+  const myPCind = PCs.findIndex((PC) => PC.PT.id === props.id);
 
   loaded.value = true;
   tick();
   function tick() {
+    let time_delta = clock.getDelta();
     boxs.forEach((box) => {
       box.rotation.y += 0.05;
     });
+    PCs.forEach((PC) => {
+      PC.update(time_delta);
+    });
+    bullets.forEach((bullet) => {
+      bullet.move(time_delta);
+    });
+    if (wasd_down > 0) {
+      const wasd_down_list = [...Array(4)].map((_, i) =>
+        wasd_down & (1 << i) ? [0.5, 1, 1.5, 2][i] : 0
+      );
+      const wasd_down_count = wasd_down_list.reduce(
+        (sum: number, e: number) => {
+          if (e > 0) sum++;
+          return sum;
+        },
+        0
+      );
+      const move_rad =
+        wasd_down_list.reduce((sum: number, e: number) => {
+          return sum + e;
+        }, 0) * 180;
+      if (wasd_down_count < 3) {
+        if (PCs[myPCind]) {
+          PCs[myPCind].PT.velocity.x =
+            Math.sin((Math.PI * move_rad) / 180) * move_scale;
+          PCs[myPCind].PT.velocity.z =
+            Math.cos((Math.PI * move_rad) / 180) * move_scale;
+        }
+      }
+    } else {
+      PCs[myPCind].PT.velocity.x *= 0.5;
+      PCs[myPCind].PT.velocity.z *= 0.5;
+    }
+    if (mouse_down) {
+      props.socket.emit("fire", {
+        T: PCs[myPCind].PT,
+        weapon_id: PCs[myPCind].PT.weapon_ids.main,
+      });
+    }
+    props.socket.emit("syncT", PCs[myPCind].PT);
     fovcos += 0.01;
-    camera.fov = (Math.cos(fovcos) + 1) * 10 + 30;
+    camera.fov = (Math.cos(fovcos) + 1) * 5 + 40;
     camera.updateProjectionMatrix();
+    if (PCs[myPCind].model) camera.lookAt(PCs[myPCind].model.position);
     renderer.render(scene, camera); // レンダリング
     requestAnimationFrame(tick);
   }

@@ -23,7 +23,7 @@ type PT = {
   kill: number;
   death: number;
   alive: boolean;
-  siting: boolean;
+  sitting: boolean;
   running: boolean;
 };
 type RT = {

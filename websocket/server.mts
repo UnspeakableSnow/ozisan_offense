@@ -52,7 +52,7 @@ function makePT(id: string, side: number, ind: number) {
     kill: 0,
     death: -1,
     alive: false,
-    siting: false,
+    sitting: false,
     running: false,
   };
   return PTdata;
