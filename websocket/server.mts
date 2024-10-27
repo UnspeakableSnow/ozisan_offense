@@ -24,15 +24,15 @@ let PsS: PS[] = [];
 
 function makePT(id: string, side: number, ind: number) {
   const start_positions: position[] = [
-    { x: 25, y: 0, z: 0, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
-    { x: 12, y: 0, z: 0, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
-    { x: 8, y: 0, z: 0, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
-    { x: 25, y: 0, z: 7, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
-    { x: 12, y: 0, z: 7, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
-    { x: 8, y: 0, z: 7, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
-    { x: 25, y: 0, z: 14, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
-    { x: 12, y: 0, z: 14, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
-    { x: 8, y: 0, z: 14, x_rotation: 0, y_rotation: 0, z_rotation: 0 },
+    { x: 2500, y: 0, z: 0,    y_rotation: 0, elevation_angle: 0 },
+    { x: 1200, y: 0, z: 0,    y_rotation: 0, elevation_angle: 0 },
+    { x: 800,  y: 0, z: 0,    y_rotation: 0, elevation_angle: 0 },
+    { x: 2500, y: 0, z: 700,  y_rotation: 0, elevation_angle: 0 },
+    { x: 1200, y: 0, z: 700,  y_rotation: 0, elevation_angle: 0 },
+    { x: 800,  y: 0, z: 700,  y_rotation: 0, elevation_angle: 0 },
+    { x: 2500, y: 0, z: 1400, y_rotation: 0, elevation_angle: 0 },
+    { x: 1200, y: 0, z: 1400, y_rotation: 0, elevation_angle: 0 },
+    { x: 800,  y: 0, z: 1400, y_rotation: 0, elevation_angle: 0 },
   ];
   const PTdata: PT = {
     id: id,
@@ -44,14 +44,13 @@ function makePT(id: string, side: number, ind: number) {
       x: 0,
       y: 0,
       z: 0,
-      x_rotation: 0,
       y_rotation: 0,
-      z_rotation: 0,
+      elevation_angle: 0,
     },
     spawn_point: start_positions[ind % start_positions.length],
     kill: 0,
     death: -1,
-    alive: false,
+    alive: true,
     sitting: false,
     running: false,
   };
@@ -202,7 +201,7 @@ io.on(
         }
       } else io.to(socket.id).emit("login_false", "ログインしてください。");
     });
-    socket.on("fire", (arg: { T: PT; weapon_id: string }) => {
+    socket.on("fire", (arg: { T: PT; weapon_id: string; ammo_is: boolean; }) => {
       let PSind = PsS.findIndex((d) => d.ip == ip);
       if (PSind != -1) {
         let slctdRind = Rlist.findIndex((d) => d.Rid == PsS[PSind].R);
@@ -212,6 +211,7 @@ io.on(
             io.to(socket.id).emit("fire", {
               T: arg.T,
               weapon_id: arg.weapon_id,
+              ammo_is: arg.ammo_is,
             });
           } else console.error("slctdR.PsTとPsSに整合性の疑義");
         } else io.to(socket.id).emit("Rfalse", "おっと！あなたはこのルームに存在しないようです。");

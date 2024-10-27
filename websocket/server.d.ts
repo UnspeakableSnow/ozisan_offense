@@ -2,9 +2,8 @@ type position = {
   x: number;
   y: number;
   z: number;
-  x_rotation: number;
   y_rotation: number;
-  z_rotation: number;
+  elevation_angle: number;
 };
 type PS = {
   id: string;
