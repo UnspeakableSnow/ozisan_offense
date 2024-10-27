@@ -37,7 +37,7 @@ function makePT(id: string, side: number, ind: number) {
   const PTdata: PT = {
     id: id,
     side: side,
-    weapon_ids: { main: "desert_eagle" },
+    weapon_ids: { main: "g3" },
     health: 0,
     position: start_positions[ind % start_positions.length],
     velocity: {

@@ -46,7 +46,6 @@ body {
 </style>
 
 <template>
-  {{ myPS }} , {{ in_nowRT }}
   <login_manager
     v-if="!myPS.connection"
     :socket="socket"

@@ -1,124 +1,68 @@
-<template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br />
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener"
-        >vue-cli documentation</a
-      >.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li>
-        <a
-          href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel"
-          target="_blank"
-          rel="noopener"
-          >babel</a
-        >
-      </li>
-      <li>
-        <a
-          href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-typescript"
-          target="_blank"
-          rel="noopener"
-          >typescript</a
-        >
-      </li>
-      <li>
-        <a
-          href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint"
-          target="_blank"
-          rel="noopener"
-          >eslint</a
-        >
-      </li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li>
-        <a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a>
-      </li>
-      <li>
-        <a href="https://forum.vuejs.org" target="_blank" rel="noopener"
-          >Forum</a
-        >
-      </li>
-      <li>
-        <a href="https://chat.vuejs.org" target="_blank" rel="noopener"
-          >Community Chat</a
-        >
-      </li>
-      <li>
-        <a href="https://twitter.com/vuejs" target="_blank" rel="noopener"
-          >Twitter</a
-        >
-      </li>
-      <li>
-        <a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a>
-      </li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li>
-        <a href="https://router.vuejs.org" target="_blank" rel="noopener"
-          >vue-router</a
-        >
-      </li>
-      <li>
-        <a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a>
-      </li>
-      <li>
-        <a
-          href="https://github.com/vuejs/vue-devtools#vue-devtools"
-          target="_blank"
-          rel="noopener"
-          >vue-devtools</a
-        >
-      </li>
-      <li>
-        <a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener"
-          >vue-loader</a
-        >
-      </li>
-      <li>
-        <a
-          href="https://github.com/vuejs/awesome-vue"
-          target="_blank"
-          rel="noopener"
-          >awesome-vue</a
-        >
-      </li>
-    </ul>
-  </div>
-</template>
-
-<script lang="ts">
-import { defineComponent } from "vue";
-
-export default defineComponent({
-  name: "HelloWorld",
-  props: {
-    msg: String,
-  },
-});
+<script setup lang="ts">
+import { defineProps } from "vue";
+import { PT } from "@/@types/types";
+const props = defineProps<{
+  hud_data: { PT: PT; ammo: number; reloading_progress: number };
+  debug_data: (string | number)[][];
+}>();
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-  margin: 40px 0 0;
+#debug_bar {
+  position: absolute;
+  top: 10vh;
+  left: 0;
+  z-index: 1;
+  background-color: #000;
+  user-select: none;
 }
-ul {
-  list-style-type: none;
-  padding: 0;
+#reticle,
+#cycle_icon {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  user-select: none;
+  pointer-events: none;
 }
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
+#main_hud {
+  position: absolute;
+  top: 1vh;
+  left: 1vw;
+  border-radius: 5px;
+  padding: 10px;
+  background-color: #f0f5;
+  z-index: 1;
 }
 </style>
+
+<template>
+  <div id="debug_bar">
+    <p v-for="(d, i) in props.debug_data" :key="i">{{ d[0] }}：{{ d[1] }}</p>
+  </div>
+  <p id="main_hud" v-if="props.hud_data.PT">
+    health : {{ props.hud_data.PT.health }}<br />
+    ammo : {{ props.hud_data.ammo }}<br />
+    {{
+      Math.floor(Math.cos(props.hud_data.reloading_progress * 15) * 100) / 200 +
+      0.5
+    }}
+  </p>
+  <img src="@/assets/nc148346.png" alt="" id="reticle" />
+  <img
+    src="@/assets/cycle_icon.png"
+    alt=""
+    id="cycle_icon"
+    :style="
+      'opacity: ' +
+      (props.hud_data.reloading_progress > 0
+        ? Math.floor(Math.cos(props.hud_data.reloading_progress * 15) * 100) /
+            200 +
+          0.5
+        : 0) +
+      ';'
+    "
+  />
+</template>

@@ -17,11 +17,19 @@ const models_dic = {
 };
 const loaded = ref(false);
 const props = defineProps<{
-  in_nowRT: RT;
   socket: Socket;
+  in_nowRT: RT;
   id: string;
 }>();
 const in_nowRT = ref(props.in_nowRT);
+const hud_rendingPT = ref<PT>();
+const hud_rending_ammo = ref(0);
+const hud_reloading_progress = ref(0);
+const debug_data = ref<(string | number)[][]>([
+  ["time_delta", 1],
+  ["syncT time delta", 1],
+]);
+let syncTleast = 0;
 
 onMounted(async () => {
   console.log(in_nowRT);
@@ -29,7 +37,7 @@ onMounted(async () => {
   let wasd_down = 0;
   let mouse_down = false;
   const clock = new THREE.Clock();
-  const move_scale = 85;
+  const move_scale = 850;
   let PCs: PCins[] = [];
   let bullets: bullet_ins[] = [];
 
@@ -103,6 +111,8 @@ onMounted(async () => {
   });
 
   props.socket.on("syncT", (RPsT: PT[]) => {
+    debug_data.value[1][1] = (Date.now() - syncTleast) / 1000;
+    syncTleast = Date.now();
     if (PCs)
       RPsT.forEach((newPT) => {
         const PCind = PCs.findIndex((PC) => PC.PT.id === newPT.id);
@@ -203,7 +213,7 @@ onMounted(async () => {
       } else if (this.PT.weapon_ids.main === "fn_fal") {
         this.model.scale.set(91.8, 91.8, 91.8);
       }
-      console.log(this.PT.id, this.animations.keys());
+      console.log(this.PT.id, this.animations.keys(), this.model);
       if (props.id === this.PT.id) this.spawn();
       else this.update(1);
     }
@@ -356,17 +366,19 @@ onMounted(async () => {
       THREE.Object3DEventMap
     >;
     bullet_id: number;
-    Pid: string;
+    Pside: number;
     vec: { y: number; e: number } | undefined;
     speed: number | undefined;
     counter: number | undefined;
     damage: number | undefined;
+    ray: THREE.Raycaster | undefined;
+    intersects: any[] | undefined;
     constructor(T: PT) {
       this.bullet = new THREE.Mesh(
         new THREE.BoxGeometry(3, 3, 6),
         new THREE.MeshBasicMaterial({ color: 0xff0000 })
       );
-      this.Pid = T.id;
+      this.Pside = T.side;
       this.bullet_id = Math.random();
       const PT = T;
       const PC = PCs.find((PC) => PC.PT.id === T.id);
@@ -377,15 +389,15 @@ onMounted(async () => {
       this.vec = { y: PT.position.y_rotation, e: PT.position.elevation_angle };
       this.bullet.position.set(
         PT.position.x + Math.sin(this.vec.y) * Math.cos(this.vec.e) * 20,
-        PT.position.y + 160 + Math.sin(this.vec.e) * 20,
+        PT.position.y + 170 + Math.sin(this.vec.e) * 20,
         PT.position.z + Math.cos(this.vec.y) * Math.cos(this.vec.e) * 20
       );
       this.bullet.rotation.set(-this.vec.e, this.vec.y, 0);
       scene.add(this.bullet);
 
-      // this.speed = PC.bul_speed * 50;
-      this.speed = PC.bul_speed * 0.5;
-      this.counter = 200000;
+      this.speed = PC.bul_speed * 50;
+      // this.speed = PC.bul_speed * 0.5;
+      this.counter = 2000;
       this.damage = PC.damage;
     }
     move(time_delta: number) {
@@ -395,11 +407,47 @@ onMounted(async () => {
         kia_bullet(this.bullet_id);
         return;
       }
+
+      this.ray = new THREE.Raycaster(
+        this.bullet.position,
+        new THREE.Vector3(
+          Math.sin(this.vec.y) * Math.cos(this.vec.e),
+          Math.sin(this.vec.e),
+          Math.cos(this.vec.y) * Math.cos(this.vec.e)
+        ),
+        0,
+        this.speed * time_delta
+      );
+      if (model_r) {
+        this.intersects = this.ray.intersectObjects([model_r]);
+        if (this.intersects.length > 0) {
+          kia_bullet(this.bullet_id);
+        }
+      }
+      PCs.forEach((PC) => {
+        if (PC.model && this.ray) {
+          this.intersects = this.ray.intersectObjects([PC.model]);
+          if (this.intersects.length > 0) {
+            const head_shot = [263, 279, 285, 313];
+            const hit_object = this.intersects[0].object;
+            if (head_shot.find((e) => e === hit_object.id))
+              console.log("head shot", PC.PT.id);
+            else console.log("body shot", PC.PT.id, hit_object.id);
+            // console.log(hit_object.parent);
+            hit_object.material.color.r = 1;
+            kia_bullet(this.bullet_id);
+          }
+        }
+      });
+
       this.bullet.position.x +=
         Math.sin(this.vec.y) * Math.cos(this.vec.e) * this.speed * time_delta;
       this.bullet.position.y += Math.sin(this.vec.e) * this.speed * time_delta;
       this.bullet.position.z +=
         Math.cos(this.vec.y) * Math.cos(this.vec.e) * this.speed * time_delta;
+    }
+    bul_gyokaku(bul_gyokaku: any) {
+      throw new Error("Method not implemented.");
     }
   }
   function camset_fps(target_id: number) {
@@ -433,32 +481,27 @@ onMounted(async () => {
 
   const canvas = document.getElementById("main_canvas");
   if (canvas === null) throw Error("main_canvas検知不能");
-  const renderer = new THREE.WebGLRenderer({ canvas });
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    logarithmicDepthBuffer: true,
+  });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(width, height);
   const scene = new THREE.Scene();
   const loadergltf = new GLTFLoader();
 
-  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 2000);
+  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 200000);
 
   const light = new THREE.HemisphereLight(0x888888, 0x505000, 1.0);
   scene.add(light);
 
-  let boxs: THREE.Object3D<THREE.Object3DEventMap>[] = [];
-  for (let i = 0; i < 30; i++) {
-    boxs.push(
-      new THREE.Mesh(
-        new THREE.BoxGeometry(10, 10, 10),
-        new THREE.MeshNormalMaterial()
-      )
-    );
-    boxs[boxs.length - 1].position.set(
-      (Math.random() - 0.5) * 400,
-      (Math.random() - 0.5) * 400,
-      (Math.random() - 0.5) * 400
-    );
-    scene.add(boxs[boxs.length - 1]);
-  }
+  let model_r: THREE.Group<THREE.Object3DEventMap>;
+  loadergltf.load("/game_assets/de_dust2_-_cs_map-rep.glb", function (gltf) {
+    model_r = gltf.scene;
+    scene.add(model_r);
+    model_r.scale.set(250, 250, 250);
+    model_r.position.set(0, 0, 0);
+  });
 
   in_nowRT.value.PsT.forEach((PT) => {
     PCs.push(new PCins(PT));
@@ -469,9 +512,8 @@ onMounted(async () => {
   tick();
   function tick() {
     let time_delta = clock.getDelta();
-    boxs.forEach((box) => {
-      box.rotation.y += 0.05;
-    });
+    debug_data.value[0][1] = Math.floor(time_delta * 1000) / 1000;
+
     PCs.forEach((PC) => {
       PC.update(time_delta);
     });
@@ -502,8 +544,8 @@ onMounted(async () => {
     PCs[myPCind].PT.position.elevation_angle -= mouse_y * 0.06;
     if (PCs[myPCind].PT.position.elevation_angle > 0.125 * Math.PI)
       PCs[myPCind].PT.position.elevation_angle = 0.125 * Math.PI;
-    if (PCs[myPCind].PT.position.elevation_angle < -0.125 * Math.PI)
-      PCs[myPCind].PT.position.elevation_angle = -0.125 * Math.PI;
+    if (PCs[myPCind].PT.position.elevation_angle < -0.03125 * Math.PI)
+      PCs[myPCind].PT.position.elevation_angle = -0.03125 * Math.PI;
     props.socket.emit("syncT", PCs[myPCind].PT);
     if (mouse_down && PCs[myPCind].reloading_time < 0) {
       props.socket.emit("fire", {
@@ -512,6 +554,10 @@ onMounted(async () => {
         ammo_is: PCs[myPCind].ammo > 0,
       });
     }
+    hud_rendingPT.value = PCs[myPCind].PT;
+    hud_rending_ammo.value = PCs[myPCind].ammo;
+    hud_reloading_progress.value =
+      PCs[myPCind].reloading_time / PCs[myPCind].reload_time;
     // fovcos += 0.01;
     // camera.fov = (Math.cos(fovcos) + 1) * 5 + 60;
     // camera.updateProjectionMatrix();
@@ -531,23 +577,25 @@ img {
   left: 20%;
   top: 20%;
 }
-hud_view {
-  position: absolute;
-  z-index: 1;
-}
 canvas {
   position: absolute;
   top: 0;
+  left: 0;
   z-index: 0;
   overflow: hidden;
-}
-deathmatch_data_stream {
-  display: none;
+  user-select: none;
 }
 </style>
 
 <template>
   <img src="../assets/ozisanoffense_logo.png" alt="title_wall" v-if="!loaded" />
-  <hud_view />
+  <hud_view
+    :hud_data="{
+      PT: hud_rendingPT,
+      ammo: hud_rending_ammo,
+      reloading_progress: hud_reloading_progress,
+    }"
+    :debug_data="debug_data"
+  />
   <canvas id="main_canvas" />
 </template>
