@@ -24,9 +24,10 @@ export type PT = {
   sitting: boolean;
   running: boolean;
 };
-export type RT = {
+type RT = {
   Rid: string;
-  map: string;
+  map: "origin";
   mode: "deathmatch" | "team_deathmatch";
   PsT: PT[];
+  nPsT: PT[];
 };

@@ -4,7 +4,7 @@ import { onMounted, defineProps, ref } from "vue";
 import hud_view from "./hud_view.vue";
 import type { RT, PT } from "@/@types/types";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { GLTFLoader, GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { Socket } from "socket.io-client";
 let width = window.innerWidth;
 let height = window.innerHeight;
@@ -28,17 +28,18 @@ const hud_reloading_progress = ref(0);
 const debug_data = ref<(string | number)[][]>([
   ["time_delta", 1],
   ["syncT time delta", 1],
+  ["npc 9 HP", 1],
 ]);
 let syncTleast = 0;
 
 onMounted(async () => {
   console.log(in_nowRT);
-  let fovcos = 0;
   let wasd_down = 0;
   let mouse_down = false;
   const clock = new THREE.Clock();
   const move_scale = 850;
   let PCs: PCins[] = [];
+  let nPCs: PCins[] = [];
   let bullets: bullet_ins[] = [];
 
   window.addEventListener("resize", () => {
@@ -110,14 +111,24 @@ onMounted(async () => {
     mouse_y = 0;
   });
 
-  props.socket.on("syncT", (RPsT: PT[]) => {
+  props.socket.on("syncT", (arg: { PsT: PT[]; nPsT: PT[] }) => {
     debug_data.value[1][1] = (Date.now() - syncTleast) / 1000;
     syncTleast = Date.now();
-    if (PCs)
-      RPsT.forEach((newPT) => {
-        const PCind = PCs.findIndex((PC) => PC.PT.id === newPT.id);
-        if (PCind != -1) PCs[PCind].PT = newPT;
+    if (PCs) {
+      arg.PsT.forEach((newPT, PCind) => {
+        if (PCind < PCs.length) PCs[PCind].PT = newPT;
+        else PCs.push(new PCins(newPT));
       });
+      if (arg.nPsT.length < nPCs.length) {
+        const removed = nPCs.splice(0, nPCs.length - arg.nPsT.length);
+        removed.forEach((nPC) => {
+          if (nPC.model) scene.remove(nPC.model);
+        });
+      }
+      arg.nPsT.forEach((new_nPT, nPCind) => {
+        if (nPCind % PCs.length !== myPCind) nPCs[nPCind].PT = new_nPT;
+      });
+    }
   });
   props.socket.on(
     "fire",
@@ -145,7 +156,7 @@ onMounted(async () => {
     reload_sound: HTMLAudioElement;
     noshot_sound: HTMLAudioElement;
     model_path: string;
-    gltf: any;
+    gltf: GLTF | undefined;
     model: THREE.Object3D | undefined;
     mixer: THREE.AnimationMixer | undefined;
     animations: Map<string, THREE.AnimationClip>;
@@ -198,9 +209,9 @@ onMounted(async () => {
       this.model = this.gltf.scene;
       if (!this.model) throw Error(this.model_path + "ロード失敗");
       if (this.gltf.animations.length > 0) {
-        this.gltf.animations.forEach((col: THREE.AnimationClip) => {
+        this.gltf.animations.forEach((clip: THREE.AnimationClip) => {
           // アニメーションをnameインデックスに
-          this.animations.set(col.name, col);
+          this.animations.set(clip.name, clip);
         });
         this.mixer = new THREE.AnimationMixer(this.model);
       }
@@ -215,7 +226,7 @@ onMounted(async () => {
       }
       console.log(this.PT.id, this.animations.keys(), this.model);
       if (props.id === this.PT.id) this.spawn();
-      else this.update(1);
+      else this.update(0.01);
     }
 
     reload() {
@@ -237,10 +248,12 @@ onMounted(async () => {
       if (this.rensha_cool_time >= 0) this.rensha_cool_time -= time_delta;
       if (this.reloading_time >= 0) this.reloading_time -= time_delta;
       let poseflag = true;
+      if (this.reloading_time >= 0) poseflag = false;
 
-      if (this.PT.sitting) {
+      if (this.PT.sitting && poseflag) {
         this.anim_change("sit");
         poseflag = false;
+        // sitとrunは未実装。以下のoriginコードを参照に。
         //   if (this.statuses & 0b1000) this.nowspeed += (2 - this.nowspeed) * 0.1;
         //   else this.nowspeed += (0.8 - this.nowspeed) * 0.2;
         // } else {
@@ -269,7 +282,8 @@ onMounted(async () => {
         this.PT.velocity.x ** 2 +
           this.PT.velocity.y ** 2 +
           this.PT.velocity.z ** 2 >
-        0.1
+          0.1 &&
+        poseflag
       ) {
         this.anim_change("walk");
         poseflag = false;
@@ -281,7 +295,6 @@ onMounted(async () => {
       this.PT.velocity.y_rotation /= 0.1;
       this.PT.velocity.elevation_angle /= 0.1;
 
-      if (this.reloading_time < 0) poseflag = false;
       if (poseflag) this.anim_change("pose");
       if (this.mixer) this.mixer.update(time_delta);
     }
@@ -327,8 +340,9 @@ onMounted(async () => {
         (!this.now_animation || this.now_animation.name != mode) &&
         this.mixer
       ) {
+        console.log(mode);
         if (mode === "reload" && this.animations.has("KeptYouWaitingHuh?")) {
-          // アニメーションを作ってないfalは離脱
+          // アニメーションを作ってないfal用
           this.mixer.stopAllAction();
           if (this.action) this.action.reset();
           this.now_animation = this.animations.get("KeptYouWaitingHuh?");
@@ -344,9 +358,9 @@ onMounted(async () => {
           if (!this.now_animation) return -1;
           this.action = this.mixer.clipAction(this.now_animation);
           this.action.setLoop(THREE.LoopRepeat, 999999);
+          this.action.clampWhenFinished = true;
+          this.action.play();
         }
-        this.action.clampWhenFinished = true;
-        this.action.play();
       }
     }
   }
@@ -372,7 +386,9 @@ onMounted(async () => {
     counter: number | undefined;
     damage: number | undefined;
     ray: THREE.Raycaster | undefined;
+    // material.DepthがTSで表現できないため。
     intersects: any[] | undefined;
+    exist: boolean;
     constructor(T: PT) {
       this.bullet = new THREE.Mesh(
         new THREE.BoxGeometry(3, 3, 6),
@@ -380,6 +396,7 @@ onMounted(async () => {
       );
       this.Pside = T.side;
       this.bullet_id = Math.random();
+      this.exist = true;
       const PT = T;
       const PC = PCs.find((PC) => PC.PT.id === T.id);
       if (!PC) {
@@ -401,7 +418,7 @@ onMounted(async () => {
       this.damage = PC.damage;
     }
     move(time_delta: number) {
-      if (!this.counter || !this.speed || !this.vec) return;
+      if (!this.counter || !this.speed || !this.vec || !this.damage) return;
       this.counter -= this.speed * time_delta;
       if (this.counter < 0) {
         kia_bullet(this.bullet_id);
@@ -418,24 +435,53 @@ onMounted(async () => {
         0,
         this.speed * time_delta
       );
-      if (model_r) {
-        this.intersects = this.ray.intersectObjects([model_r]);
+      if (this.exist && PCs[myPCind].model && this.ray) {
+        this.intersects = this.ray.intersectObjects([PCs[myPCind].model]);
         if (this.intersects.length > 0) {
-          kia_bullet(this.bullet_id);
+          if (PCs[myPCind].PT.side != this.Pside) {
+            // const head_shot = [263, 279, 285, 313];
+            const hit_object = this.intersects[0].object;
+            // if (head_shot.find((e) => e === hit_object.id)) {
+            //   PCs[myPCind].PT.health -= this.damage * 2;
+            //   console.log("got head shot", PCs[myPCind].PT.id, this.Pside);
+            // } else {
+            PCs[myPCind].PT.health -= this.damage;
+            console.log(
+              "got body shot",
+              PCs[myPCind].PT.id,
+              hit_object.id,
+              this.Pside
+            );
+            kia_bullet(this.bullet_id);
+            this.exist = false;
+          }
         }
       }
-      PCs.forEach((PC) => {
-        if (PC.model && this.ray) {
-          this.intersects = this.ray.intersectObjects([PC.model]);
+      nPCs.forEach((nPC, i) => {
+        // nPCの処理担当はインしているPCに均等に。
+        // あと深すぎるせいかeslintがdamage疑ってる。
+        if (
+          this.exist &&
+          nPC.model &&
+          this.ray &&
+          i % PCs.length == myPCind &&
+          this.damage
+        ) {
+          this.intersects = this.ray.intersectObjects([nPC.model]);
           if (this.intersects.length > 0) {
-            const head_shot = [263, 279, 285, 313];
-            const hit_object = this.intersects[0].object;
-            if (head_shot.find((e) => e === hit_object.id))
-              console.log("head shot", PC.PT.id);
-            else console.log("body shot", PC.PT.id, hit_object.id);
-            // console.log(hit_object.parent);
-            hit_object.material.color.r = 1;
-            kia_bullet(this.bullet_id);
+            if (nPC.PT.side != this.Pside) {
+              // const head_shot = [263, 279, 285, 313];
+              const hit_object = this.intersects[0].object;
+              // if (head_shot.find((e) => e === hit_object.id)) {
+              //   nPCs[i].PT.health -= this.damage * 2;
+              //   console.log("got head shot", nPC.PT.id);
+              // } else {
+              nPCs[i].PT.health -= this.damage;
+              console.log("got body shot", nPC.PT.id, hit_object.id);
+              hit_object.material.color.r = 1;
+              kia_bullet(this.bullet_id);
+              this.exist = false;
+            }
           }
         }
       });
@@ -445,9 +491,6 @@ onMounted(async () => {
       this.bullet.position.y += Math.sin(this.vec.e) * this.speed * time_delta;
       this.bullet.position.z +=
         Math.cos(this.vec.y) * Math.cos(this.vec.e) * this.speed * time_delta;
-    }
-    bul_gyokaku(bul_gyokaku: any) {
-      throw new Error("Method not implemented.");
     }
   }
   function camset_fps(target_id: number) {
@@ -466,18 +509,18 @@ onMounted(async () => {
       PCs[target_id].PT.position.z + Math.cos(vec.y) * Math.cos(vec.e) * 40
     );
   }
-  function camset_test(targetPCind: number) {
-    camera.position.set(
-      PCs[targetPCind].PT.position.x,
-      PCs[targetPCind].PT.position.y + 100,
-      PCs[targetPCind].PT.position.z + 500
-    );
-    camera.lookAt(
-      PCs[targetPCind].PT.position.x,
-      PCs[targetPCind].PT.position.y + 100,
-      PCs[targetPCind].PT.position.z
-    );
-  }
+  // function camset_test(targetPCind: number) {
+  //   camera.position.set(
+  //     PCs[targetPCind].PT.position.x,
+  //     PCs[targetPCind].PT.position.y + 100,
+  //     PCs[targetPCind].PT.position.z + 500
+  //   );
+  //   camera.lookAt(
+  //     PCs[targetPCind].PT.position.x,
+  //     PCs[targetPCind].PT.position.y + 100,
+  //     PCs[targetPCind].PT.position.z
+  //   );
+  // }
 
   const canvas = document.getElementById("main_canvas");
   if (canvas === null) throw Error("main_canvas検知不能");
@@ -506,6 +549,9 @@ onMounted(async () => {
   in_nowRT.value.PsT.forEach((PT) => {
     PCs.push(new PCins(PT));
   });
+  in_nowRT.value.nPsT.forEach((nPT) => {
+    nPCs.push(new PCins(nPT));
+  });
   const myPCind = PCs.findIndex((PC) => PC.PT.id === props.id);
 
   loaded.value = true;
@@ -513,9 +559,16 @@ onMounted(async () => {
   function tick() {
     let time_delta = clock.getDelta();
     debug_data.value[0][1] = Math.floor(time_delta * 1000) / 1000;
+    const nPC9 = nPCs.find((nPC) => nPC.PT.id === "npc_9");
+    if (nPC9) {
+      debug_data.value[2][1] = nPC9.PT.health;
+    }
 
     PCs.forEach((PC) => {
       PC.update(time_delta);
+    });
+    nPCs.forEach((nPC) => {
+      nPC.update(time_delta);
     });
     bullets.forEach((bullet) => {
       bullet.move(time_delta);
@@ -547,6 +600,11 @@ onMounted(async () => {
     if (PCs[myPCind].PT.position.elevation_angle < -0.03125 * Math.PI)
       PCs[myPCind].PT.position.elevation_angle = -0.03125 * Math.PI;
     props.socket.emit("syncT", PCs[myPCind].PT);
+    nPCs.forEach((nPC, i) => {
+      if (i % PCs.length === myPCind) {
+        props.socket.emit("npc_syncT", nPC.PT);
+      }
+    });
     if (mouse_down && PCs[myPCind].reloading_time < 0) {
       props.socket.emit("fire", {
         T: PCs[myPCind].PT,
@@ -590,6 +648,7 @@ canvas {
 <template>
   <img src="../assets/ozisanoffense_logo.png" alt="title_wall" v-if="!loaded" />
   <hud_view
+    v-if="hud_rendingPT"
     :hud_data="{
       PT: hud_rendingPT,
       ammo: hud_rending_ammo,
