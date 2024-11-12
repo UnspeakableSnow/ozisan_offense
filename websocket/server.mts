@@ -1,14 +1,15 @@
 import http from "http";
-import { Server, Socket, ServerOptions } from "socket.io";
+import { Adapter } from "socket.io-adapter";
+import { Server, Socket } from "socket.io";
 const server: http.Server = http.createServer();
-const socketOptions: ServerOptions = {
+const socketOptions = {
   cors: {
-    origin: function (origin, fn) {
+    origin: function (origin: any, fn: any) {
       const isTarget = origin !== undefined && origin.match(/^https?:\/\/www\.test\.net/) !== null;
       return isTarget ? fn(null, origin) : fn(Error('error invalid domain'));
     },
     credentials: true
-  }
+  },
 };
 const io = new Server(server, socketOptions);
 
