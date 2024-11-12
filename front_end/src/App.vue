@@ -6,7 +6,10 @@ import room_access from "./components/room_access.vue";
 import graphic_view from "./components/graphic_view.vue";
 import type { PS, RT } from "@/@types/types";
 import { io } from "socket.io-client";
-const socket = io("http://localhost:8081", {
+// const socket = io("http://localhost:8081", {
+//   withCredentials: true,
+// });
+const socket = io("https://ozisan-offense.onrender.com:8081", {
   withCredentials: true,
 });
 

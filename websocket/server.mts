@@ -2,10 +2,10 @@ import http from "http";
 import { Server, Socket } from "socket.io";
 const server: http.Server = http.createServer();
 const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:8080",
-    credentials: true,
-  },
+  // cors: {
+  //   origin: "http://localhost:8080",
+  //   credentials: true,
+  // },
 });
 const port = 8081;
 server.listen(port, () => console.log("app listening on port " + port));
