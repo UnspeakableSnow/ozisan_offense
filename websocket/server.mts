@@ -61,7 +61,7 @@ function makePT(id: string, side: number, ind: number) {
 io.on(
   "connection",
   function (socket: Socket) {
-    console.log(socket.handshake);
+    console.log(socket.handshake.headers["true-client-ip"]);
     const ip = socket.handshake.address != "::ffff:127.0.0.1" ? socket.handshake.address : "::1";
     console.log("detection", ip);
     const PSind = PSs.findIndex((d) => d.ip == ip);
