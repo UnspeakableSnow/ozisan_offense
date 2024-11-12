@@ -111,21 +111,23 @@ onMounted(async () => {
     mouse_y = 0;
   });
 
-  props.socket.on("syncT", (arg: { PsT: PT[]; nPsT: PT[] }) => {
+  props.socket.on("syncT", (arg: { PTs: PT[]; nPTs: PT[] }) => {
     debug_data.value[1][1] = (Date.now() - syncTleast) / 1000;
     syncTleast = Date.now();
     if (PCs) {
-      arg.PsT.forEach((newPT, PCind) => {
-        if (PCind < PCs.length) PCs[PCind].PT = newPT;
-        else PCs.push(new PCins(newPT));
+      arg.PTs.forEach((newPT, PCind) => {
+        if (PCind != myPCind) {
+          if (PCind < PCs.length) PCs[PCind].PT = newPT;
+          else PCs.push(new PCins(newPT));
+        }
       });
-      if (arg.nPsT.length < nPCs.length) {
-        const removed = nPCs.splice(0, nPCs.length - arg.nPsT.length);
+      if (arg.nPTs.length < nPCs.length) {
+        const removed = nPCs.splice(0, nPCs.length - arg.nPTs.length);
         removed.forEach((nPC) => {
           if (nPC.model) scene.remove(nPC.model);
         });
       }
-      arg.nPsT.forEach((new_nPT, nPCind) => {
+      arg.nPTs.forEach((new_nPT, nPCind) => {
         if (nPCind % PCs.length !== myPCind) nPCs[nPCind].PT = new_nPT;
       });
     }

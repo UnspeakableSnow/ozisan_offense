@@ -60,21 +60,8 @@ function makePT(id: string, side: number, ind: number) {
 
 io.on(
   "connection",
-  function (socket: {
-    handshake: { address: any };
-    join: (arg0: string) => void;
-    id: any;
-    on: (
-      arg0: string,
-      arg1: {
-        (type: any): void;
-        (posi: any): void;
-        (cam_gyokaku: any): void;
-        (data: any): void;
-        (T: any): void;
-      }
-    ) => void;
-  }) {
+  function (socket: Socket) {
+    console.log(socket.handshake);
     const ip = socket.handshake.address != "::ffff:127.0.0.1" ? socket.handshake.address : "::1";
     console.log("detection", ip);
     const PSind = PSs.findIndex((d) => d.ip == ip);

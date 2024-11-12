@@ -14,11 +14,11 @@ const emits = defineEmits<{
 const selectRid = ref("");
 const select_map = ref("origin");
 const select_mode = ref("deathmatch");
-const Rlist = ref<RT[]>([]);
-props.socket.emit("getRlist");
-props.socket.on("vomitRlist", (vomited_Rlist: RT[]) => {
-  console.log(vomited_Rlist);
-  Rlist.value = vomited_Rlist;
+const Rs = ref<RT[]>([]);
+props.socket.emit("getRs");
+props.socket.on("vomitRs", (vomited_Rs: RT[]) => {
+  console.log(vomited_Rs);
+  Rs.value = vomited_Rs;
 });
 props.socket.on("Rsuccess", (RT: RT) => {
   emits("vomit_RT", RT);
@@ -116,7 +116,7 @@ form {
       </div>
     </form>
     <button
-      v-for="(R, i) in Rlist"
+      v-for="(R, i) in Rs"
       :key="i"
       @click="props.socket.emit('selectR', R.Rid)"
     >
