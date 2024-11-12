@@ -9,9 +9,7 @@ import { io } from "socket.io-client";
 // const socket = io("http://localhost:8081", {
 //   withCredentials: true,
 // });
-const socket = io("https://ozisan-offense.onrender.com:8081", {
-  withCredentials: true,
-});
+const socket = io("https://ozisan-offense.onrender.com");
 
 const myPS = ref<PS>({
   id: "",
