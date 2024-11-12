@@ -1,12 +1,16 @@
 import http from "http";
-import { Server, Socket } from "socket.io";
+import { Server, Socket, ServerOptions } from "socket.io";
 const server: http.Server = http.createServer();
-const io = new Server(server, {
+const socketOptions: ServerOptions = {
   cors: {
-    origin: "http://localhost:8080",
-    credentials: true,
-  },
-});
+    origin: function (origin, fn) {
+      const isTarget = origin !== undefined && origin.match(/^https?:\/\/www\.test\.net/) !== null;
+      return isTarget ? fn(null, origin) : fn(Error('error invalid domain'));
+    },
+    credentials: true
+  }
+};
+const io = new Server(server, socketOptions);
 
 const port = 8081;
 server.listen(port, () => console.log("app listening on port " + port));
