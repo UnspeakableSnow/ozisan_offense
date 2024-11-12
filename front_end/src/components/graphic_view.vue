@@ -546,10 +546,10 @@ onMounted(async () => {
     model_r.position.set(0, 0, 0);
   });
 
-  in_nowRT.value.PsT.forEach((PT) => {
+  in_nowRT.value.PTs.forEach((PT) => {
     PCs.push(new PCins(PT));
   });
-  in_nowRT.value.nPsT.forEach((nPT) => {
+  in_nowRT.value.nPTs.forEach((nPT) => {
     nPCs.push(new PCins(nPT));
   });
   const myPCind = PCs.findIndex((PC) => PC.PT.id === props.id);

@@ -120,7 +120,7 @@ form {
       :key="i"
       @click="props.socket.emit('selectR', R.Rid)"
     >
-      <p class="bottom_population_text">{{ R.PsT.length }}/20</p>
+      <p class="bottom_population_text">{{ R.PTs.length }}/20</p>
       <p class="bottom_map_text">{{ R.map }}</p>
       <p class="bottom_main_text">{{ R.Rid }}</p>
       <p class="bottom_mode_text">{{ R.mode }}</p>

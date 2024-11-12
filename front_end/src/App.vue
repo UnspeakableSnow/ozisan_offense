@@ -9,12 +9,15 @@ import { io } from "socket.io-client";
 // const socket = io("http://localhost:8081", {
 //   withCredentials: true,
 // });
-const socket = io("https://ozisan-offense.onrender.com");
+const socket = io("https://ozisan-offense.onrender.com", {
+  withCredentials: true,
+});
 
 const myPS = ref<PS>({
   id: "",
   R: "",
   connection: false,
+  ip: "",
 });
 const in_nowRT = ref<RT>();
 
@@ -32,6 +35,7 @@ socket.on("login_false", (message: string) => {
     id: "",
     R: "",
     connection: false,
+    ip: "",
   };
 });
 socket.on("Rfalse", (message: string) => {

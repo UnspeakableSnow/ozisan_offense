@@ -7,6 +7,7 @@ export type position = {
 };
 export type PS = {
   id: string;
+  ip: string;
   R: string;
   connection: boolean;
 };
@@ -24,10 +25,10 @@ export type PT = {
   sitting: boolean;
   running: boolean;
 };
-type RT = {
+export type RT = {
   Rid: string;
   map: "origin";
   mode: "deathmatch" | "team_deathmatch";
-  PsT: PT[];
-  nPsT: PT[];
+  PTs: PT[];
+  nPTs: PT[];
 };

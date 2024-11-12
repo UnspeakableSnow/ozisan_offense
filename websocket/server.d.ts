@@ -29,6 +29,6 @@ type RT = {
   Rid: string;
   map: "origin";
   mode: "deathmatch" | "team_deathmatch";
-  PsT: PT[];
-  nPsT: PT[];
+  PTs: PT[];
+  nPTs: PT[];
 };
