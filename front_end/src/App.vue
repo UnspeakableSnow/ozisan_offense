@@ -6,8 +6,8 @@ import room_access from "./components/room_access.vue";
 import graphic_view from "./components/graphic_view.vue";
 import type { PS, RT } from "@/@types/types";
 import { io } from "socket.io-client";
-// const socket = io("https://ozisan-offense.onrender.com", {
-const socket = io("http://192.168.11.17:8081", {
+// const socket = io("http://192.168.11.17:8081", {
+const socket = io("https://ozisan-offense.onrender.com", {
   withCredentials: true,
 });
 

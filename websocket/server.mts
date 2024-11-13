@@ -243,6 +243,7 @@ io.on(
             const RPTsind = Rs[slctdRind].PTs.findIndex((d) => d.id === PSs[PSind].id);
             if (RPTsind != -1) {
               Rs[slctdRind].PTs[RPTsind] = T;
+              Rs[slctdRind].PTs[RPTsind].position = Rs[slctdRind].PTs[RPTsind].spawn_point;
               io.to(Rs[slctdRind].Rid).emit("spawn", Rs[slctdRind].PTs[RPTsind]);
             } else console.error("slctdR.PTsとPSsに整合性の疑義");
           } else io.to(socket.id).emit("Rfalse", "おっと！あなたはこのルームに存在しないようです。");

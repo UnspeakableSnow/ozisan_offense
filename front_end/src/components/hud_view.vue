@@ -66,10 +66,10 @@ const props = defineProps<{
   <div id="debug_bar">
     <p v-for="(d, i) in props.debug_data" :key="i">{{ d[0] }}：{{ d[1] }}</p>
   </div>
-  <div id="youdead" v-if="props.hud_data.PT.alive">
+  <div id="youdead" v-if="!props.hud_data.PT.alive">
     <div>
       <h1>You Dead!</h1>
-      <p>press "f" to respawn</p>
+      <p>press "t" to respawn</p>
     </div>
   </div>
   <p id="main_hud" v-if="props.hud_data.PT">
