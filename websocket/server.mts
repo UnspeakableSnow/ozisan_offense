@@ -247,7 +247,7 @@ io.on(
       if (PSind != -1) {
         const slctdRind = Rs.findIndex((d) => d.Rid === PSs[PSind].R);
         if (slctdRind != -1) {
-          const RPTsind = Rs[slctdRind].PTs.findIndex((PT) => PT.id === PSs[PSind].id);
+          const RPTsind = Rs[slctdRind].PTs.findIndex((PT) => PT.id === id);
           if (RPTsind != -1) {
             io.to(PSs[PSind].R).emit("fire", {
               T: arg.T,
