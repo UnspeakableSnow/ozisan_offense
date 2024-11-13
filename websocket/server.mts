@@ -236,7 +236,7 @@ io.on(
             const RPTsind = Rs[slctdRind].PTs.findIndex((d) => d.id === PSs[PSind].id);
             if (RPTsind != -1) {
               Rs[slctdRind].PTs[RPTsind] = T;
-              io.in(Rs[slctdRind].Rid).emit("spawn", Rs[slctdRind].PTs[RPTsind]);
+              io.to(Rs[slctdRind].Rid).emit("spawn", Rs[slctdRind].PTs[RPTsind]);
             } else console.error("slctdR.PTsとPSsに整合性の疑義", Rs[slctdRind].PTs, PSs);
           } else io.to(socket.id).emit("Rfalse", "おっと！あなたはこのルームに存在しないようです。");
         }
@@ -249,7 +249,7 @@ io.on(
         if (slctdRind != -1) {
           const RPTsind = Rs[slctdRind].PTs.findIndex((d) => d.id === PSs[PSind].id);
           if (RPTsind != -1) {
-            io.in(PSs[PSind].R).emit("fire", {
+            io.to(PSs[PSind].R).emit("fire", {
               T: arg.T,
               weapon_id: arg.weapon_id,
               ammo_is: arg.ammo_is,
