@@ -99,6 +99,7 @@ io.on(
       if (PSind !== -1) {
         PSs[PSind].connection = true;
         socket.join(PSs[PSind].R);
+        console.log("change_room", PSs[PSind].id, "to", PSs[PSind].R, " rooms is", socket.rooms);
         id = PSs[PSind].id;
         console.log("login_success", id);
         io.to(socket.id).emit("login_success", PSs[PSind]);
@@ -109,7 +110,9 @@ io.on(
           if (reconnectRind !== -1) {
             io.to(socket.id).emit("reconnectionR", Rs[reconnectRind]);
           } else {
+            socket.leave(PSs[PSind].R);
             PSs[PSind].R = "&lobby"
+            socket.join(PSs[PSind].R);
             io.to(socket.id).emit("Rfalse", "以前のマッチは終了しました。");
           }
         }
@@ -174,7 +177,11 @@ io.on(
                   )
                 );
               }
+              socket.leave(PSs[PSind].R);
               PSs[PSind].R = Rid;
+              console.log("change_room", PSs[PSind].id, "to", PSs[PSind].R, " rooms is", socket.rooms);
+              socket.join(PSs[PSind].R);
+
               Rs[slctdRind].nPTs.splice(0, 1);
               console.log("Rsuccess", id);
               io.to(socket.id).emit("Rsuccess", Rs[slctdRind]);
@@ -237,7 +244,7 @@ io.on(
             if (RPTsind != -1) {
               Rs[slctdRind].PTs[RPTsind] = T;
               io.to(Rs[slctdRind].Rid).emit("spawn", Rs[slctdRind].PTs[RPTsind]);
-            } else console.error("slctdR.PTsとPSsに整合性の疑義", Rs[slctdRind].PTs, PSs);
+            } else console.error("slctdR.PTsとPSsに整合性の疑義");
           } else io.to(socket.id).emit("Rfalse", "おっと！あなたはこのルームに存在しないようです。");
         }
       } else io.to(socket.id).emit("login_false", "ログインしてください。");
@@ -254,7 +261,7 @@ io.on(
               weapon_id: arg.weapon_id,
               ammo_is: arg.ammo_is,
             });
-          } else console.error("slctdR.PTsとPSsに整合性の疑義", Rs[slctdRind].PTs, PSs[PSind].id);
+          } else console.error("slctdR.PTsとPSsに整合性の疑義");
         } else io.to(socket.id).emit("Rfalse", "おっと！あなたはこのルームに存在しないようです。");
       } else io.to(socket.id).emit("login_false", "ログインしてください。");
     });

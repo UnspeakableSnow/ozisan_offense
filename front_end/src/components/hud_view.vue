@@ -27,6 +27,30 @@ const props = defineProps<{
   user-select: none;
   pointer-events: none;
 }
+#youdead div {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+  text-align: center;
+  justify-content: center;
+  user-select: none;
+  pointer-events: none;
+}
+#youdead div h1 {
+  margin: 0;
+}
+#youdead {
+  position: absolute;
+  font-family: serif;
+  font-size: 4vw;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #f005;
+}
 #main_hud {
   position: absolute;
   top: 1vh;
@@ -41,6 +65,12 @@ const props = defineProps<{
 <template>
   <div id="debug_bar">
     <p v-for="(d, i) in props.debug_data" :key="i">{{ d[0] }}：{{ d[1] }}</p>
+  </div>
+  <div id="youdead" v-if="props.hud_data.PT.alive">
+    <div>
+      <h1>You Dead!</h1>
+      <p>press "f" to respawn</p>
+    </div>
   </div>
   <p id="main_hud" v-if="props.hud_data.PT">
     health : {{ props.hud_data.PT.health }}<br />

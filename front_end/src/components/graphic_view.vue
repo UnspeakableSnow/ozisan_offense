@@ -30,7 +30,6 @@ const debug_data = ref<(string | number)[][]>([
   ["syncT time delta", 1],
   ["npc 9 HP", 1],
 ]);
-let syncTleast = 0;
 
 onMounted(async () => {
   console.log(in_nowRT);
@@ -120,7 +119,6 @@ onMounted(async () => {
 
   props.socket.on("syncT", (arg: { PTs: PT[]; nPTs: PT[]; time: number }) => {
     debug_data.value[1][1] = (Date.now() - arg.time) / 1000;
-    syncTleast = Date.now();
     if (PCs) {
       arg.PTs.forEach((newPT, PCind) => {
         if (PCind != myPCind) {
