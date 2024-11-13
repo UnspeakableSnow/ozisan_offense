@@ -8,8 +8,8 @@ import { GLTFLoader, GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { Socket } from "socket.io-client";
 let width = window.innerWidth;
 let height = window.innerHeight;
-let mouse_x = 0.5;
-let mouse_y = 0.5;
+let mouse_x = 0;
+let mouse_y = 0;
 const models_dic = {
   desert_eagle: "/game_assets/desert_eagle_reload_animation.glb",
   fn_fal: "/game_assets/fn_fal_reload_animation.glb",
@@ -141,13 +141,13 @@ onMounted(async () => {
     "fire",
     (data: { T: PT; weapon_id: string; ammo_is: boolean }) => {
       const PCind = PCs.findIndex((PC) => PC.PT.id === data.T.id);
-      if (PCind != -1) PCs[PCind].PT = data.T;
+      if (PCind !== -1) PCs[PCind].PT = data.T;
       PCs[PCind].shot(data.weapon_id, data.ammo_is);
     }
   );
   props.socket.on("spawn", (PT: PT) => {
     const PCind = PCs.findIndex((PC) => PC.PT.id === PT.id);
-    if (PCind != -1) PCs[PCind].PT = PT;
+    if (PCind !== -1 && PCind !== myPCind) PCs[PCind].PT = PT;
     PCs[PCind].spawn();
   });
 
@@ -313,24 +313,20 @@ onMounted(async () => {
 
     shot(weapon_id: string, ammo_is: boolean) {
       if (!loaded.value) return -1;
-      if (this.rensha_cool_time < 0 || props.id !== this.PT.id) {
-        if (ammo_is) {
-          this.rensha_cool_time = this.rensha;
-          this.ammo--;
-          bullets.push(new bullet_ins(this.PT));
-          if (this.shot_sound.readyState === 4) {
-            this.shot_sound.pause();
-            this.shot_sound.currentTime = 0;
-            this.shot_sound.play();
-          }
-        } else {
-          // 空打ち
-          this.rensha_cool_time = this.rensha;
-          if (this.noshot_sound.readyState === 4) {
-            this.noshot_sound.pause();
-            this.noshot_sound.currentTime = 0;
-            this.noshot_sound.play();
-          }
+      if (ammo_is) {
+        // this.ammo--;
+        bullets.push(new bullet_ins(this.PT));
+        if (this.shot_sound.readyState === 4) {
+          this.shot_sound.pause();
+          this.shot_sound.currentTime = 0;
+          this.shot_sound.play();
+        }
+      } else {
+        // 空打ち
+        if (this.noshot_sound.readyState === 4) {
+          this.noshot_sound.pause();
+          this.noshot_sound.currentTime = 0;
+          this.noshot_sound.play();
         }
       }
     }
@@ -472,7 +468,7 @@ onMounted(async () => {
       }
       nPCs.forEach((nPC, i) => {
         // nPCの処理担当はインしているPCに均等に。
-        // あと深すぎるせいかeslintがdamage疑ってる。
+        // あと処理が深すぎるせいかeslintがdamage疑ってる。
         if (
           this.exist &&
           nPC.model &&
@@ -483,6 +479,7 @@ onMounted(async () => {
           this.intersects = this.ray.intersectObjects([nPC.model]);
           if (this.intersects.length > 0) {
             if (nPC.PT.side != this.Pside) {
+              // ヘッドショット後回し
               // const head_shot = [263, 279, 285, 313];
               const hit_object = this.intersects[0].object;
               // if (head_shot.find((e) => e === hit_object.id)) {
@@ -618,14 +615,21 @@ onMounted(async () => {
         props.socket.emit("npc_syncT", nPC.PT);
       }
     });
-    if (mouse_down && PCs[myPCind].reloading_time < 0) {
+    if (
+      mouse_down &&
+      PCs[myPCind].reloading_time < 0 &&
+      PCs[myPCind].rensha_cool_time < 0
+    ) {
       props.socket.emit("fire", {
         T: PCs[myPCind].PT,
         weapon_id: PCs[myPCind].PT.weapon_ids.main,
         ammo_is: PCs[myPCind].ammo > 0,
       });
+      PCs[myPCind].rensha_cool_time = PCs[myPCind].rensha;
+      PCs[myPCind].ammo--;
     }
     if (t_down && !PCs[myPCind].PT.alive) {
+      PCs[myPCind].PT.position = PCs[myPCind].PT.spawn_point;
       props.socket.emit("spawn", PCs[myPCind].PT);
     }
     hud_rendingPT.value = PCs[myPCind].PT;

@@ -17,10 +17,10 @@
 
 新（計画）
 
-- GithubPages // フロントエンド
+- GithubPages フロントエンド - 未デプロイ
   - vuejs / ts
     - socket.io-client
-- 無料サーバー // バックエンド
+- 無料サーバー バックエンド - <https://ozisan-offense.onrender.com>
   - node.js
     - socket.io
 
@@ -49,5 +49,4 @@ room_idの一文字目が&の場合ゲーム以外画面（ロビー、武器閲
 "Desert Eagle Reload Animation" (<https://skfb.ly/6SNAK>) by Stavich is licensed under Creative Commons Attribution-NonCommercial (<http://creativecommons.org/licenses/by-nc/4.0/>).  
 "G3 Reload Animation" (<https://skfb.ly/6SSFz>) by Stavich is licensed under Creative Commons Attribution-NonCommercial (<http://creativecommons.org/licenses/by-nc/4.0/>).  
 "FN FAL Reload Animation" (<https://skfb.ly/6VUVA>) by Stavich is licensed under CC Attribution-NonCommercial-NoDerivs (<http://creativecommons.org/licenses/by-nc-nd/4.0/>).  
-"Polygonal Zombies with Animations Free Pack" (<https://skfb.ly/o7SYD>) by Denys Almaral is licensed under Creative Commons Attribution (<http://creativecommons.org/licenses/by/4.0/>). (not use)  
 効果音：効果音ラボ

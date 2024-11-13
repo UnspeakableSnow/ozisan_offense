@@ -3,6 +3,7 @@ import { Server, Socket } from "socket.io";
 const server: http.Server = http.createServer();
 const socketOptions = {
   cors: {
+    // フロントのある場所
     origin: "http://192.168.11.17:8080",
     // origin: "https://",
     credentials: true
@@ -243,7 +244,6 @@ io.on(
             const RPTsind = Rs[slctdRind].PTs.findIndex((d) => d.id === PSs[PSind].id);
             if (RPTsind != -1) {
               Rs[slctdRind].PTs[RPTsind] = T;
-              Rs[slctdRind].PTs[RPTsind].position = Rs[slctdRind].PTs[RPTsind].spawn_point;
               io.to(Rs[slctdRind].Rid).emit("spawn", Rs[slctdRind].PTs[RPTsind]);
             } else console.error("slctdR.PTsとPSsに整合性の疑義");
           } else io.to(socket.id).emit("Rfalse", "おっと！あなたはこのルームに存在しないようです。");
