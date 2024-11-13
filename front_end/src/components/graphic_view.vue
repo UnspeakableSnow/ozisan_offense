@@ -35,6 +35,7 @@ let syncTleast = 0;
 onMounted(async () => {
   console.log(in_nowRT);
   let wasd_down = 0;
+  let t_down = false;
   let mouse_down = false;
   const clock = new THREE.Clock();
   const move_scale = 850;
@@ -70,6 +71,9 @@ onMounted(async () => {
     if (event.key === "d") {
       wasd_down |= 0b0001;
     }
+    if (event.key === "t") {
+      t_down = true;
+    }
     if (event.key === "r") {
       if (PCs[myPCind]) PCs[myPCind].reload();
     }
@@ -93,6 +97,9 @@ onMounted(async () => {
     if (event.key === "d") {
       wasd_down &= 0b1110;
     }
+    if (event.key === "t") {
+      t_down = false;
+    }
   });
   document.body.addEventListener("mousedown", () => {
     mouse_down = true;
@@ -111,8 +118,8 @@ onMounted(async () => {
     mouse_y = 0;
   });
 
-  props.socket.on("syncT", (arg: { PTs: PT[]; nPTs: PT[] }) => {
-    debug_data.value[1][1] = (Date.now() - syncTleast) / 1000;
+  props.socket.on("syncT", (arg: { PTs: PT[]; nPTs: PT[]; time: number }) => {
+    debug_data.value[1][1] = (Date.now() - arg.time) / 1000;
     syncTleast = Date.now();
     if (PCs) {
       arg.PTs.forEach((newPT, PCind) => {
@@ -140,6 +147,11 @@ onMounted(async () => {
       PCs[PCind].shot(data.weapon_id, data.ammo_is);
     }
   );
+  props.socket.on("spawn", (PT: PT) => {
+    const PCind = PCs.findIndex((PC) => PC.PT.id === PT.id);
+    if (PCind != -1) PCs[PCind].PT = PT;
+    PCs[PCind].spawn();
+  });
 
   // プレイヤーキャラクターインスタンス
   class PCins {
@@ -326,7 +338,6 @@ onMounted(async () => {
     }
 
     spawn() {
-      if (props.id != this.PT.id) throw Error("不正な入力");
       this.repopcount = 3;
       this.rensha_cool_time = 2;
       this.PT.alive = true;
@@ -335,7 +346,6 @@ onMounted(async () => {
       this.PT.position = this.PT.spawn_point;
       this.PT.sitting = false;
       this.PT.running = false;
-      props.socket.emit("spawn", this.PT);
     }
     anim_change(mode: string) {
       if (
@@ -448,6 +458,9 @@ onMounted(async () => {
             //   console.log("got head shot", PCs[myPCind].PT.id, this.Pside);
             // } else {
             PCs[myPCind].PT.health -= this.damage;
+            if (PCs[myPCind].PT.health <= 0) {
+              PCs[myPCind].PT.alive = false;
+            }
             console.log(
               "got body shot",
               PCs[myPCind].PT.id,
@@ -601,7 +614,7 @@ onMounted(async () => {
       PCs[myPCind].PT.position.elevation_angle = 0.125 * Math.PI;
     if (PCs[myPCind].PT.position.elevation_angle < -0.03125 * Math.PI)
       PCs[myPCind].PT.position.elevation_angle = -0.03125 * Math.PI;
-    props.socket.emit("syncT", PCs[myPCind].PT);
+    props.socket.emit("syncT", { time: Date.now(), PT: PCs[myPCind].PT });
     nPCs.forEach((nPC, i) => {
       if (i % PCs.length === myPCind) {
         props.socket.emit("npc_syncT", nPC.PT);
@@ -613,6 +626,9 @@ onMounted(async () => {
         weapon_id: PCs[myPCind].PT.weapon_ids.main,
         ammo_is: PCs[myPCind].ammo > 0,
       });
+    }
+    if (t_down && !PCs[myPCind].PT.alive) {
+      props.socket.emit("spawn", PCs[myPCind].PT);
     }
     hud_rendingPT.value = PCs[myPCind].PT;
     hud_rending_ammo.value = PCs[myPCind].ammo;

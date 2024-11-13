@@ -162,25 +162,23 @@ io.on(
                 Rs[slctdRind].PTs.push(
                   makePT(PSs[PSind].id, Rs[slctdRind].PTs.length, Rs[slctdRind].PTs.length)
                 );
-                PSs[PSind].R = Rid;
-                console.log("Rsuccess", id);
-                io.to(socket.id).emit("Rsuccess", Rs[slctdRind]);
               } else {
                 Rs[slctdRind].PTs.push(
                   makePT(
                     PSs[PSind].id,
-                    Rs[slctdRind].PTs.filter((d) => d.side === 0).length <=
+                    Rs[slctdRind].PTs.filter((PT) => PT.side === 0).length <=
                       Rs[slctdRind].PTs.length / 2
                       ? 0
                       : 1,
                     Rs[slctdRind].PTs.length
                   )
                 );
-                Rs[slctdRind].nPTs.splice(0, 1);
-                PSs[PSind].R = Rid;
-                console.log("Rsuccess", id);
-                io.to(socket.id).emit("Rsuccess", Rs[slctdRind]);
               }
+              PSs[PSind].R = Rid;
+              Rs[slctdRind].nPTs.splice(0, 1);
+              console.log("Rsuccess", id);
+              io.to(socket.id).emit("Rsuccess", Rs[slctdRind]);
+              
             } else {
               console.log("Rfalse", id);
               io.to(socket.id).emit("Rfalse", "おっと！ルームの人数がいっぱいのようです。");
@@ -198,15 +196,15 @@ io.on(
         io.to(socket.id).emit("login_false", "ログインしてください。");
       }
     });
-    socket.on("syncT", (T: PT) => {
+    socket.on("syncT", (arg: {time: number ,PT: PT}) => {
       const PSind = PSs.findIndex((PS) => PS.id === id);
       if (PSind != -1) {
         const slctdRind = Rs.findIndex((d) => d.Rid === PSs[PSind].R);
         if (slctdRind != -1) {
-          const RPTsind = Rs[slctdRind].PTs.findIndex((d) => d.id === T.id);
+          const RPTsind = Rs[slctdRind].PTs.findIndex((d) => d.id === id);
           if (RPTsind != -1) {
-            Rs[slctdRind].PTs[RPTsind] = T;
-            io.to(socket.id).emit("syncT", {PTs: Rs[slctdRind].PTs, nPTs:Rs[slctdRind].nPTs});
+            Rs[slctdRind].PTs[RPTsind] = arg.PT;
+            io.to(socket.id).emit("syncT", {PTs: Rs[slctdRind].PTs, nPTs:Rs[slctdRind].nPTs, time:arg.time});
           } else console.error("slctdR.PTsとPSsに整合性の疑義");
         } else {
           console.log("Rfalse", id);
@@ -251,7 +249,7 @@ io.on(
         if (slctdRind != -1) {
           const RPTsind = Rs[slctdRind].PTs.findIndex((d) => d.id === PSs[PSind].id);
           if (RPTsind != -1) {
-            io.to(socket.id).emit("fire", {
+            io.in(PSs[PSind].R).emit("fire", {
               T: arg.T,
               weapon_id: arg.weapon_id,
               ammo_is: arg.ammo_is,
