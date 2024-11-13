@@ -1,13 +1,10 @@
 import http from "http";
-import { Adapter } from "socket.io-adapter";
 import { Server, Socket } from "socket.io";
 const server: http.Server = http.createServer();
 const socketOptions = {
   cors: {
-    origin: function (origin: any, fn: any) {
-      const isTarget = origin !== undefined && origin.match(/^https?:\/\/www\.test\.net/) !== null;
-      return isTarget ? fn(null, origin) : fn(Error('error invalid domain'));
-    },
+    origin: "https://192.168.11.17:8080",
+    // origin: "https://",
     credentials: true
   },
 };
