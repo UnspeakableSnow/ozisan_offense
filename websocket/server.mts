@@ -63,47 +63,54 @@ function makePT(id: string, side: number, ind: number) {
 io.on(
   "connection",
   function (socket: Socket) {
-    console.log(socket.handshake);
+    console.log(socket.id);
     const got_address = typeof socket.handshake.headers["true-client-ip"] === "string" ? socket.handshake.headers["true-client-ip"] : "::ffff:127.0.0.1";
     const ip = got_address != "::ffff:127.0.0.1" ? got_address : "::1";
-    console.log("detection", ip);
-    const PSind = PSs.findIndex((d) => d.ip == ip);
-    if (PSind != -1) {
-      const reconnectRind = Rs.findIndex(
-        (d) => d.Rid == PSs[PSind].R && d.PTs.findIndex((p) => p.id == PSs[PSind].id) != -1
-      );
-      if (reconnectRind != -1) {
-        socket.join(PSs[PSind].R);
-        io.to(socket.id).emit("reconnectionR", Rs[reconnectRind]);
-      } else PSs[PSind].R = "&lobby";
-      console.log("reconnected", ip);
-      io.to(socket.id).emit("reconnection", PSs[PSind].id, PSs[PSind].R);
-    } else {
-      console.log("req_connection", ip);
-      io.to(socket.id).emit("req_connection");
-    }
+    let id: string | undefined;
+    // const PSind = PSs.findIndex((d) => d.ip == ip);
+    // if (PSind != -1) {
+    //   const reconnectRind = Rs.findIndex(
+    //     (d) => d.Rid == PSs[PSind].R && d.PTs.findIndex((p) => p.id == PSs[PSind].id) != -1
+    //   );
+    //   if (reconnectRind != -1) {
+    //     socket.join(PSs[PSind].R);
+    //     io.to(socket.id).emit("reconnectionR", Rs[reconnectRind]);
+    //   } else PSs[PSind].R = "&lobby";
+    //   console.log("reconnected", ip);
+    //   io.to(socket.id).emit("reconnection", PSs[PSind].id, PSs[PSind].R);
+    // } else {
+    //   console.log("req_connection", ip);
+    //   io.to(socket.id).emit("req_connection");
+    // }
+    console.log("req_connection", ip);
+    io.to(socket.id).emit("req_connection");
 
-    socket.on("login", (id: string) => {
+    socket.on("login", (got_id: string) => {
       // いづれここでパスワード認証
-      PSs.push({
-        id: id,
-        ip: ip,
-        R: "&lobby",
-        connection: true,
-      });
-      const PSind = PSs.findIndex((d) => d.ip == ip);
-      if (PSind != -1) {
+      if (PSs.findIndex((d) => d.id === got_id) === -1) {
+        PSs.push({
+          id: got_id,
+          ip: ip,
+          R: "&lobby",
+          connection: true,
+        });
+      }
+      const PSind = PSs.findIndex((d) => d.id === got_id);
+      if (PSind !== -1) {
         socket.join(PSs[PSind].R);
-        console.log("login_success", ip);
+        id = PSs[PSind].id;
+        console.log("login_success", id);
         io.to(socket.id).emit("login_success", PSs[PSind].id, PSs[PSind].R);
       } else console.error("PSs.pushエラー", PSs);
     });
     socket.on("getRs", () => {
-      console.log("vomitRs", ip);
-      io.to(socket.id).emit("vomitRs", Rs);
+      if (id) {
+        console.log("vomitRs", id);
+        io.to(socket.id).emit("vomitRs", Rs);
+      }
     });
     socket.on("createR", (arg: {Rid: string, map:string, mode:string}) => {
-      const PSind = PSs.findIndex((d) => d.ip == ip);
+      const PSind = PSs.findIndex((d) => d.id === id);
       if (PSind != -1) {
         if (PSs[PSind].R.charAt(0) == "&" || Rs.findIndex((R) => R.Rid == PSs[PSind].R) == -1) {
           const slctdRind = Rs.findIndex((d) => d.Rid == arg.Rid);
@@ -121,7 +128,7 @@ io.on(
             });
             io.emit("vomitRs", Rs);
           } else {
-            console.log("重複Rfalse", ip, arg);
+            console.log("重複Rfalse", id, arg);
             io.to(socket.id).emit("Rfalse", "重複したid、存在しないmap、modeを検出");
           }
         } else {
@@ -133,7 +140,7 @@ io.on(
       }
     });
     socket.on("selectR", (Rid: string) => {
-      const PSind = PSs.findIndex((d) => d.ip == ip);
+      const PSind = PSs.findIndex((d) => d.id == id);
       if (PSind != -1) {
         if (PSs[PSind].R.charAt(0) == "&" || Rs.findIndex((R) => R.Rid == PSs[PSind].R) == -1) {
           const slctdRind = Rs.findIndex((d) => d.Rid == Rid);
@@ -144,7 +151,7 @@ io.on(
                   makePT(PSs[PSind].id, Rs[slctdRind].PTs.length, Rs[slctdRind].PTs.length)
                 );
                 PSs[PSind].R = Rid;
-                console.log("Rsuccess", ip);
+                console.log("Rsuccess", id);
                 io.to(socket.id).emit("Rsuccess", Rs[slctdRind]);
               } else {
                 Rs[slctdRind].PTs.push(
@@ -159,20 +166,20 @@ io.on(
                 );
                 Rs[slctdRind].nPTs.splice(0, 1);
                 PSs[PSind].R = Rid;
-                console.log("Rsuccess", ip);
+                console.log("Rsuccess", id);
                 io.to(socket.id).emit("Rsuccess", Rs[slctdRind]);
               }
             } else {
-              console.log("Rfalse", ip);
+              console.log("Rfalse", id);
               io.to(socket.id).emit("Rfalse", "おっと！ルームの人数がいっぱいのようです。");
             }
           } else {
-            console.log("Rfalse", ip);
+            console.log("Rfalse", id);
             io.to(socket.id).emit("Rfalse", "おっと！ルームが存在しないようです。");
           }
         } else {
           io.to(socket.id).emit("Rsuccess", PSs[PSind]);
-          console.log("doubleRselect", ip);
+          console.log("doubleRselect", id);
         }
       } else {
         console.log("login_false", ip);
@@ -180,7 +187,7 @@ io.on(
       }
     });
     socket.on("syncT", (T: PT) => {
-      const PSind = PSs.findIndex((d) => d.ip == ip);
+      const PSind = PSs.findIndex((d) => d.id == id);
       if (PSind != -1) {
         const slctdRind = Rs.findIndex((d) => d.Rid == PSs[PSind].R);
         if (slctdRind != -1) {
@@ -190,13 +197,13 @@ io.on(
             io.to(socket.id).emit("syncT", {PTs: Rs[slctdRind].PTs, nPTs:Rs[slctdRind].nPTs});
           } else console.error("slctdR.PTsとPSsに整合性の疑義");
         } else {
-          console.log("Rfalse", ip);
+          console.log("Rfalse", id);
           io.to(socket.id).emit("Rfalse", "おっと！あなたはこのルームに存在しないようです。");
         }
       } else io.to(socket.id).emit("login_false", "ログインしてください。");
     });
     socket.on("npc_syncT", (T: PT) => {
-      const PSind = PSs.findIndex((d) => d.ip == ip);
+      const PSind = PSs.findIndex((d) => d.id == id);
       if (PSind != -1) {
         const slctdRind = Rs.findIndex((d) => d.Rid == PSs[PSind].R);
         if (slctdRind != -1) {
@@ -205,13 +212,13 @@ io.on(
             Rs[slctdRind].nPTs[RnPTsind] = T;
           } else console.error("slctdR.PTsとPSsに整合性の疑義");
         } else {
-          console.log("Rfalse", ip);
+          console.log("Rfalse", id);
           io.to(socket.id).emit("Rfalse", "おっと！あなたはこのルームに存在しないようです。");
         }
       } else io.to(socket.id).emit("login_false", "ログインしてください。");
     });
     socket.on("spawn", (T: PT) => {
-      const PSind = PSs.findIndex((d) => d.ip == ip);
+      const PSind = PSs.findIndex((d) => d.id == id);
       if (PSind != -1) {
         if (PSs[PSind].id == T.id) {
           const slctdRind = Rs.findIndex((d) => d.Rid == PSs[PSind].R);
@@ -226,7 +233,7 @@ io.on(
       } else io.to(socket.id).emit("login_false", "ログインしてください。");
     });
     socket.on("fire", (arg: { T: PT; weapon_id: string; ammo_is: boolean; }) => {
-      const PSind = PSs.findIndex((d) => d.ip == ip);
+      const PSind = PSs.findIndex((d) => d.id == id);
       if (PSind != -1) {
         const slctdRind = Rs.findIndex((d) => d.Rid == PSs[PSind].R);
         if (slctdRind != -1) {
@@ -242,9 +249,9 @@ io.on(
       } else io.to(socket.id).emit("login_false", "ログインしてください。");
     });
     socket.on("disconnect", () => {
-      const PSind = PSs.findIndex((d) => d.ip == ip);
+      const PSind = PSs.findIndex((d) => d.id == id);
       if (PSind != -1) {
-        console.log("disconnected", ip);
+        console.log("disconnected", id);
         PSs[PSind].connection = false;
       }
     });
