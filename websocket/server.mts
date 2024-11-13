@@ -3,7 +3,7 @@ import { Server, Socket } from "socket.io";
 const server: http.Server = http.createServer();
 const socketOptions = {
   cors: {
-    origin: "https://192.168.11.17:8080",
+    origin: "http://192.168.11.17:8080",
     // origin: "https://",
     credentials: true
   },
