@@ -54,7 +54,7 @@ body {
   <login_manager
     v-if="!myPS.connection"
     :socket="socket"
-    @vomit_idAR="(id: string, R: string) => { myPS.id = id; myPS.R = R; myPS.connection = true; }"
+    @vomitPS="(PS: PS) => { myPS = PS; }"
   />
   <room_access
     v-else-if="myPS.R == '&lobby'"

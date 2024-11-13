@@ -2,18 +2,19 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, ref } from "vue";
 import { Socket } from "socket.io-client";
+import { PS } from "@/@types/types";
 
 const props = defineProps<{
   socket: Socket;
 }>();
 const emits = defineEmits<{
-  (e: "vomit_idAR", id: string, R: string): void;
+  (e: "vomitPS", PS: PS): void;
 }>();
 
 const id = ref("");
 
-props.socket.on("login_success", (id: string, R: string) => {
-  emits("vomit_idAR", id, R);
+props.socket.on("login_success", (PS: PS) => {
+  emits("vomitPS", PS);
 });
 </script>
 
