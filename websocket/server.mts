@@ -5,7 +5,7 @@ const socketOptions = {
   cors: {
     // フロントのある場所
     // origin: "http://192.168.11.17:8080",
-    origin: "https://unspeakablesnow.github.io/ozisan_offense/",
+    origin: "https://unspeakablesnow.github.io/",
     credentials: true
   },
 };
