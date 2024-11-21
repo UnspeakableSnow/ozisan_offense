@@ -20,6 +20,8 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
+    - name: move folder
+      run: cd front_end
     - uses: actions/checkout@v4
       with:
         lfs: true
@@ -29,8 +31,6 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     
-    - name: move folder
-      run: cd front_end
     - name: npm install
       run: npm i
     - name: Run tests
