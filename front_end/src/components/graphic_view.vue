@@ -11,9 +11,9 @@ let height = window.innerHeight;
 let mouse_x = 0;
 let mouse_y = 0;
 const models_dic = {
-  desert_eagle: "/game_assets/desert_eagle_reload_animation.glb",
-  fn_fal: "/game_assets/fn_fal_reload_animation.glb",
-  g3: "/game_assets/g3_reload_animation.glb",
+  desert_eagle: "./game_assets/desert_eagle_reload_animation.glb",
+  fn_fal: "./game_assets/fn_fal_reload_animation.glb",
+  g3: "./game_assets/g3_reload_animation.glb",
 };
 const loaded = ref(false);
 const props = defineProps<{
@@ -203,9 +203,9 @@ onMounted(async () => {
           break;
       }
       this.model = undefined;
-      this.shot_sound = new Audio("/game_assets/submachinegun.mp3");
-      this.reload_sound = new Audio("/game_assets/pompaction.mp3");
-      this.noshot_sound = new Audio("/game_assets/pompaction_none.mp3");
+      this.shot_sound = new Audio("./game_assets/submachinegun.mp3");
+      this.reload_sound = new Audio("./game_assets/pompaction.mp3");
+      this.noshot_sound = new Audio("./game_assets/pompaction_none.mp3");
       this.model_path = models_dic[this.PT.weapon_ids.main];
       this.animations = new Map([]);
       this.reloading_time = 0;
