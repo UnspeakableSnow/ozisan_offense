@@ -12,14 +12,12 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
     steps:
-      - name: move folder
-        run: cd front_end
       - uses: actions/checkout@v2
 
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
-          node-version: '14'
+          node-version: '22'
 
       - name: Cache dependencies
         uses: actions/cache@v2
