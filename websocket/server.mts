@@ -4,8 +4,8 @@ const server: http.Server = http.createServer();
 const socketOptions = {
   cors: {
     // フロントのある場所
-    origin: "http://192.168.11.17:8080",
-    // origin: "https://",
+    // origin: "http://192.168.11.17:8080",
+    origin: "https://unspeakablesnow.github.io/ozisan_offense/",
     credentials: true
   },
 };
