@@ -27,6 +27,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
+      - name: move folder
+        run: cd front_end
       - run: npm ci
       - run: npm test
       - run: npm run generate
