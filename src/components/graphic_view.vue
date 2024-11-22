@@ -393,7 +393,6 @@ onMounted(async () => {
     damage: number | undefined;
     ray: THREE.Raycaster | undefined;
     // material.DepthがTSで表現できないため。
-    // @ts-ignore
     intersects: any[] | undefined;
     exist: boolean;
     constructor(T: PT) {
