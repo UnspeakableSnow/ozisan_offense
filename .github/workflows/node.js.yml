@@ -25,6 +25,8 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: Setup Node
         uses: actions/setup-node@v4
