@@ -17,7 +17,7 @@
 
 新（計画）
 
-- GithubPages フロントエンド - 未デプロイ
+- GithubPages フロントエンド - <https://unspeakablesnow.github.io/ozisan_offense_frontend/>
   - vuejs / ts
     - socket.io-client
 - 無料サーバー バックエンド - <https://ozisan-offense.onrender.com>
