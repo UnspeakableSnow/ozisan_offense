@@ -80,9 +80,9 @@ const props = defineProps<{
       0.5
     }}
   </p>
-  <img src="@/assets/nc148346.png" alt="" id="reticle" />
+  <img src="assets/nc148346.png" alt="" id="reticle" />
   <img
-    src="@/assets/cycle_icon.png"
+    src="assets/cycle_icon.png"
     alt=""
     id="cycle_icon"
     :style="
