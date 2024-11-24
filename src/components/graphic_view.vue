@@ -11,9 +11,9 @@ let height = window.innerHeight;
 let mouse_x = 0;
 let mouse_y = 0;
 const models_dic = {
-  desert_eagle: "/assets/desert_eagle_reload_animation.glb",
-  fn_fal: "/assets/fn_fal_reload_animation.glb",
-  g3: "/assets/g3_reload_animation.glb",
+  desert_eagle: "assets/desert_eagle_reload_animation.glb",
+  fn_fal: "assets/fn_fal_reload_animation.glb",
+  g3: "assets/g3_reload_animation.glb",
 };
 const loaded = ref(false);
 const props = defineProps<{
@@ -203,9 +203,9 @@ onMounted(async () => {
           break;
       }
       this.model = undefined;
-      this.shot_sound = new Audio("/assets/submachinegun.mp3");
-      this.reload_sound = new Audio("/assets/pompaction.mp3");
-      this.noshot_sound = new Audio("/assets/pompaction_none.mp3");
+      this.shot_sound = new Audio("assets/submachinegun.mp3");
+      this.reload_sound = new Audio("assets/pompaction.mp3");
+      this.noshot_sound = new Audio("assets/pompaction_none.mp3");
       this.model_path = models_dic[this.PT.weapon_ids.main];
       this.animations = new Map([]);
       this.reloading_time = 0;
@@ -549,7 +549,7 @@ onMounted(async () => {
   scene.add(light);
 
   let model_r: THREE.Group<THREE.Object3DEventMap>;
-  loadergltf.load("/game_assets/de_dust2_-_cs_map-rep.glb", function (gltf) {
+  loadergltf.load("assets/de_dust2_-_cs_map-rep.glb", function (gltf) {
     model_r = gltf.scene;
     scene.add(model_r);
     model_r.scale.set(250, 250, 250);
@@ -666,7 +666,7 @@ canvas {
 </style>
 
 <template>
-  <img src="../assets/ozisanoffense_logo.png" alt="title_wall" v-if="!loaded" />
+  <img src="assets/ozisanoffense_logo.png" alt="title_wall" v-if="!loaded" />
   <hud_view
     v-if="hud_rendingPT"
     :hud_data="{
