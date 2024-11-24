@@ -46,6 +46,7 @@ jobs:
         with:
           name: 'github-pages'
           path: 'dist'
+      - run: cp -r src/assets dist/assets
 
   deploy:
     environment:
