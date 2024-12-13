@@ -15,6 +15,9 @@ const selectRid = ref("");
 const select_map = ref("origin");
 const select_mode = ref("deathmatch");
 const Rs = ref<RT[]>([]);
+const select_weapon = ref<{ main: "desert_eagle" | "fn_fal" | "g3" }>({
+  main: "desert_eagle",
+});
 props.socket.emit("getRs");
 props.socket.on("vomitRs", (vomited_Rs: RT[]) => {
   console.log(vomited_Rs);
@@ -101,8 +104,9 @@ form {
             id="select_map"
             v-model="select_map"
           >
-            <option value="origin">origin</option></select
-          ><br />
+            <option value="origin">origin</option>
+          </select>
+          <br />
           select_mode:<select
             name="select_mode"
             id="select_mode"
@@ -115,10 +119,41 @@ form {
         <input type="submit" />
       </div>
     </form>
+    <form @submit.prevent="">
+      <label for="desert_eagle">
+        <input
+          type="radio"
+          name="select_weapon_main"
+          v-model="select_weapon.main"
+          value="desert_eagle"
+          id="desert_eagle"
+          checked
+        />desert_eagle</label
+      >
+      <label for="fn_fal">
+        <input
+          type="radio"
+          v-model="select_weapon.main"
+          name="select_weapon_main"
+          value="fn_fal"
+          id="fn_fal"
+        />fn_fal
+      </label>
+      <label for="g3">
+        <input
+          type="radio"
+          v-model="select_weapon.main"
+          name="select_weapon_main"
+          value="g3"
+          id="g3"
+        />g3
+      </label>
+      <!-- ここにグレネードなど他の武器を足す -->
+    </form>
     <button
       v-for="(R, i) in Rs"
       :key="i"
-      @click="props.socket.emit('selectR', R.Rid)"
+      @click="props.socket.emit('selectR', R.Rid, select_weapon)"
     >
       <p class="bottom_population_text">{{ R.PTs.length }}/20</p>
       <p class="bottom_map_text">{{ R.map }}</p>

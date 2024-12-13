@@ -468,14 +468,8 @@ onMounted(async () => {
       }
       nPCs.forEach((nPC, i) => {
         // nPCの処理担当はインしているPCに均等に。
-        // あと処理が深すぎるせいかeslintがdamage疑ってる。
-        if (
-          this.exist &&
-          nPC.model &&
-          this.ray &&
-          i % PCs.length == myPCind &&
-          this.damage
-        ) {
+        // あと処理が深すぎるせいかeslintがdamage疑ってるのでas。
+        if (this.exist && nPC.model && this.ray && i % PCs.length == myPCind) {
           this.intersects = this.ray.intersectObjects([nPC.model]);
           if (this.intersects.length > 0) {
             if (nPC.PT.side != this.Pside) {
@@ -486,7 +480,7 @@ onMounted(async () => {
               //   nPCs[i].PT.health -= this.damage * 2;
               //   console.log("got head shot", nPC.PT.id);
               // } else {
-              nPCs[i].PT.health -= this.damage;
+              nPCs[i].PT.health -= this.damage as number;
               console.log("got body shot", nPC.PT.id, hit_object.id);
               hit_object.material.color.r = 1;
               kia_bullet(this.bullet_id);
@@ -564,9 +558,19 @@ onMounted(async () => {
   });
   const myPCind = PCs.findIndex((PC) => PC.PT.id === props.id);
 
-  loaded.value = true;
   tick();
   function tick() {
+    if (
+      PCs.findIndex((PC) => {
+        PC.model;
+      }) === -1 &&
+      nPCs.findIndex((PC) => {
+        PC.model;
+      }) === -1 &&
+      model_r
+    ) {
+      loaded.value = true;
+    }
     let time_delta = clock.getDelta();
     debug_data.value[0][1] = Math.floor(time_delta * 1000) / 1000;
     const nPC9 = nPCs.find((nPC) => nPC.PT.id === "npc_9");
@@ -648,12 +652,14 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-img {
+#yet_load {
   position: absolute;
   z-index: 2;
-  width: 60%;
   left: 20%;
   top: 20%;
+}
+#yet_load img {
+  width: 60%;
 }
 canvas {
   position: absolute;
@@ -666,7 +672,10 @@ canvas {
 </style>
 
 <template>
-  <img src="assets/ozisanoffense_logo.png" alt="title_wall" v-if="!loaded" />
+  <div v-if="!loaded" id="yet_load">
+    <img src="assets/ozisanoffense_logo.png" alt="title_wall" />
+    <p>ロード中</p>
+  </div>
   <hud_view
     v-if="hud_rendingPT"
     :hud_data="{

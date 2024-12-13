@@ -6,8 +6,8 @@ import room_access from "./components/room_access.vue";
 import graphic_view from "./components/graphic_view.vue";
 import type { PS, RT } from "@/@types/types";
 import { io } from "socket.io-client";
-// const socket = io("http://192.168.11.17:8081", {
-const socket = io("https://ozisan-offense.onrender.com", {
+const socket = io("http://192.168.11.17:8081", {
+  // const socket = io("https://ozisan-offense.onrender.com", {
   withCredentials: true,
 });
 
@@ -18,6 +18,7 @@ const myPS = ref<PS>({
   ip: "",
 });
 const in_nowRT = ref<RT>();
+const req_connection_got = ref<boolean>(false);
 
 socket.on("reconnection", (id: string, R: string) => {
   myPS.value.id = id;
@@ -26,6 +27,9 @@ socket.on("reconnection", (id: string, R: string) => {
 });
 socket.on("reconnectionR", (R: RT) => {
   in_nowRT.value = R;
+});
+socket.on("req_connection", (id: string, R: string) => {
+  req_connection_got.value = true;
 });
 socket.on("login_false", (message: string) => {
   alert(message);
@@ -46,11 +50,23 @@ socket.on("Rfalse", (message: string) => {
 body {
   border: double 10px #f0f;
 }
+#req_connection_got {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  user-select: none;
+  pointer-events: none;
+}
 </style>
 
 <template>
+  <h1 v-if="!req_connection_got" id="req_connection_got">
+    サーバーとの接続に時間がかかっています...
+  </h1>
   <login_manager
-    v-if="!myPS.connection"
+    v-if="!myPS.connection && req_connection_got"
     :socket="socket"
     @vomitPS="(PS: PS) => { myPS = PS; }"
   />
